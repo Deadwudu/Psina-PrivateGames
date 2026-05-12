@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { AdminAssignTaskForm } from "@/components/AdminAssignTaskForm";
+import { AdminAssignSideTaskForm } from "@/components/AdminAssignSideTaskForm";
 import { AdminReportRowForm } from "@/components/AdminReportRowForm";
 
 type GameUserRow = {
@@ -103,6 +104,8 @@ export default async function AdminPage() {
       <p className="mb-8 text-[var(--muted)]">Рапорты, задачи участникам и результаты взломов.</p>
 
       <AdminAssignTaskForm users={userOptions} />
+
+      <AdminAssignSideTaskForm />
 
       <section className="mb-12">
         <h2 className="mb-4 text-lg font-medium">Выданные задачи</h2>

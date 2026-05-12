@@ -42,11 +42,25 @@ export default async function RapportPage() {
     .eq("user_id", session.userId)
     .order("created_at", { ascending: false });
 
-  const tasks: TaskOption[] =
+  const allTasks =
     (taskRows as { id: string; title: string }[] | null)?.map((t) => ({
       id: t.id,
       title: t.title,
     })) ?? [];
+
+  const { data: reportedRows } = await supabase
+    .from("task_reports")
+    .select("user_task_id")
+    .eq("user_id", session.userId)
+    .not("user_task_id", "is", null);
+
+  const reportedIds = new Set(
+    (reportedRows as { user_task_id: string | null }[] | null)
+      ?.map((r) => r.user_task_id)
+      .filter((id): id is string => !!id) ?? []
+  );
+
+  const tasks: TaskOption[] = allTasks.filter((t) => !reportedIds.has(t.id));
 
   const { data: myRaw } = await supabase
     .from("task_reports")
@@ -78,7 +92,7 @@ export default async function RapportPage() {
       </Link>
       <h1 className="mb-2 text-2xl font-semibold">Рапорт по задаче</h1>
       <p className="mb-6 text-sm text-[var(--muted)]">
-        Выберите задачу, отметьте выполнение и добавьте комментарий. Рапорт можно обновить повторной отправкой по той же задаче.
+        Выберите задачу без рапорта, отметьте выполнение и добавьте комментарий. По одной задаче можно отправить только один рапорт — повторно выбрать её не получится.
       </p>
 
       <TaskReportForm tasks={tasks} />

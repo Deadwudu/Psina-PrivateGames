@@ -34,6 +34,50 @@ export async function adminAssignTask(formData: FormData): Promise<AdminTaskResu
   revalidatePath("/dashboard/rapport");
 }
 
+/** Задача всей стороне: у каждого игрока с этой ролью появляется своя строка user_tasks. */
+export async function adminAssignTaskToSide(formData: FormData): Promise<AdminTaskResult | void> {
+  const session = await getSession();
+  if (!session || session.role !== "admin") {
+    return { error: "Нет прав администратора" };
+  }
+
+  const targetSide = (formData.get("target_side") as string)?.trim();
+  const title = (formData.get("side_title") as string)?.trim();
+  const description = (formData.get("side_description") as string)?.trim();
+
+  if (targetSide !== "side_a" && targetSide !== "side_b") {
+    return { error: "Выберите сторону А или Б" };
+  }
+  if (!title) return { error: "Укажите заголовок" };
+  if (!description) return { error: "Укажите текст задания" };
+
+  const supabase = createServiceClient();
+  const { data: players, error: listErr } = await supabase
+    .from("game_users")
+    .select("id")
+    .eq("role", targetSide);
+
+  if (listErr) return { error: listErr.message };
+  const ids = (players as { id: string }[] | null)?.map((p) => p.id) ?? [];
+  if (ids.length === 0) {
+    return { error: "На выбранной стороне нет участников (только эта роль учитывается)." };
+  }
+
+  const rows = ids.map((user_id) => ({
+    user_id,
+    title,
+    description,
+    status: "pending",
+  }));
+
+  const { error } = await supabase.from("user_tasks").insert(rows);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  revalidatePath("/dashboard/tasks");
+  revalidatePath("/dashboard/rapport");
+}
+
 export type AdminReportResult = { error: string };
 
 export async function adminUpdateTaskReport(formData: FormData): Promise<AdminReportResult | void> {

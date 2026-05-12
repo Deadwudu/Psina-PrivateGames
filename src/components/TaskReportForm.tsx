@@ -27,7 +27,8 @@ export function TaskReportForm({ tasks }: { tasks: TaskOption[] }) {
   if (tasks.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-[var(--border)] p-6 text-sm text-[var(--muted)]">
-        У вас пока нет выданных задач — рапорт можно отправить после того, как администратор назначит задание.
+        Нет задач без рапорта: либо вам ещё не выдавали задания, либо по всем уже отправлен рапорт. Новые задачи
+        появятся после выдачи администратором.
       </p>
     );
   }

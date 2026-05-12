@@ -24,21 +24,32 @@ export async function submitTaskReport(formData: FormData) {
 
   if (taskErr || !task) return { error: "Задача не найдена или не назначена вам" };
 
+  const { data: existing, error: exErr } = await supabase
+    .from("task_reports")
+    .select("id")
+    .eq("user_task_id", userTaskId)
+    .maybeSingle();
+
+  if (exErr) return { error: exErr.message };
+  if (existing) return { error: "По этой задаче рапорт уже отправлен. Повторно отправить нельзя." };
+
   const contentMirror = rapportComment.trim() ? rapportComment : "(без комментария)";
 
-  const { error } = await supabase.from("task_reports").upsert(
-    {
-      user_id: session.userId,
-      user_task_id: userTaskId,
-      task_completed: taskCompleted,
-      rapport_comment: rapportComment,
-      content: contentMirror,
-      task_reference: null,
-    },
-    { onConflict: "user_task_id" }
-  );
+  const { error } = await supabase.from("task_reports").insert({
+    user_id: session.userId,
+    user_task_id: userTaskId,
+    task_completed: taskCompleted,
+    rapport_comment: rapportComment,
+    content: contentMirror,
+    task_reference: null,
+  });
 
-  if (error) return { error: error.message };
+  if (error) {
+    if (error.code === "23505" || /unique|duplicate/i.test(error.message)) {
+      return { error: "По этой задаче рапорт уже отправлен. Повторно отправить нельзя." };
+    }
+    return { error: error.message };
+  }
 
   const { error: stErr } = await supabase
     .from("user_tasks")
