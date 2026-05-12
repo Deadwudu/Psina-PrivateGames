@@ -17,7 +17,8 @@
 1. Создайте проект на [supabase.com](https://supabase.com).
 2. **SQL Editor** → вставьте содержимое `supabase/migrations/001_initial.sql` → **Run** (один раз на чистую БД).
 3. Затем выполните `supabase/migrations/002_task_reports_rapport.sql` (колонки рапорта: задача, «выполнено», комментарий).
-4. **Settings → API** скопируйте **Project URL** и **service_role** secret (ключ не светите в браузере и не коммитьте).
+4. Затем `supabase/migrations/003_shared_side_task_rapports.sql` (общие задачи стороне: `assignment_batch_id`, один рапорт на выдачу до успеха).
+5. **Settings → API** скопируйте **Project URL** и **service_role** secret (ключ не светите в браузере и не коммитьте).
 
 **Администратор** (после регистрации участника с нужным позывным):
 

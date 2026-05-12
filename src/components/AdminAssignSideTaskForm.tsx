@@ -17,7 +17,8 @@ export function AdminAssignSideTaskForm() {
     <form action={formAction} className="panel mb-10 space-y-4">
       <h2 className="text-lg font-medium">Выдать задачу всей стороне</h2>
       <p className="text-sm text-[var(--muted)]">
-        У каждого игрока выбранной стороны появится такая же личная задача. Рапорт по ней каждый отправляет сам — повторно по той же задаче нельзя.
+        У каждого игрока выбранной стороны появится такая же личная задача. Рапорт один на всю выдачу: пока не отмечен успех,
+        любой участник может отправить или заменить рапорт; после «выполнено» запись закрывается.
       </p>
       <div>
         <span className="mb-2 block text-sm text-[var(--muted)]">Сторона</span>

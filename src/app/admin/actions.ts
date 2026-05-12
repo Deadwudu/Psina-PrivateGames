@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "crypto";
 import { getSession } from "@/lib/auth/session";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -63,11 +64,13 @@ export async function adminAssignTaskToSide(formData: FormData): Promise<AdminTa
     return { error: "На выбранной стороне нет участников (только эта роль учитывается)." };
   }
 
+  const batchId = randomUUID();
   const rows = ids.map((user_id) => ({
     user_id,
     title,
     description,
-    status: "pending",
+    status: "pending" as const,
+    assignment_batch_id: batchId,
   }));
 
   const { error } = await supabase.from("user_tasks").insert(rows);
@@ -95,7 +98,7 @@ export async function adminUpdateTaskReport(formData: FormData): Promise<AdminRe
   const supabase = createServiceClient();
   const { data: rep, error: fetchErr } = await supabase
     .from("task_reports")
-    .select("user_task_id")
+    .select("user_task_id, assignment_batch_id")
     .eq("id", reportId)
     .maybeSingle();
 
@@ -115,11 +118,17 @@ export async function adminUpdateTaskReport(formData: FormData): Promise<AdminRe
 
   if (error) return { error: error.message };
 
-  if (rep.user_task_id) {
+  const repTyped = rep as { user_task_id: string | null; assignment_batch_id: string | null } | null;
+  if (repTyped?.assignment_batch_id) {
     await supabase
       .from("user_tasks")
       .update({ status: taskCompleted ? "done" : "pending" })
-      .eq("id", rep.user_task_id as string);
+      .eq("assignment_batch_id", repTyped.assignment_batch_id);
+  } else if (repTyped?.user_task_id) {
+    await supabase
+      .from("user_tasks")
+      .update({ status: taskCompleted ? "done" : "pending" })
+      .eq("id", repTyped.user_task_id);
   }
 
   revalidatePath("/admin");

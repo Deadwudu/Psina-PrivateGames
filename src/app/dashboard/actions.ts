@@ -17,47 +17,107 @@ export async function submitTaskReport(formData: FormData) {
   const supabase = createServiceClient();
   const { data: task, error: taskErr } = await supabase
     .from("user_tasks")
-    .select("id, user_id")
+    .select("id, user_id, assignment_batch_id")
     .eq("id", userTaskId)
     .eq("user_id", session.userId)
     .maybeSingle();
 
   if (taskErr || !task) return { error: "Задача не найдена или не назначена вам" };
 
-  const { data: existing, error: exErr } = await supabase
-    .from("task_reports")
-    .select("id")
-    .eq("user_task_id", userTaskId)
-    .maybeSingle();
-
-  if (exErr) return { error: exErr.message };
-  if (existing) return { error: "По этой задаче рапорт уже отправлен. Повторно отправить нельзя." };
-
+  const batchId = task.assignment_batch_id as string | null;
   const contentMirror = rapportComment.trim() ? rapportComment : "(без комментария)";
 
-  const { error } = await supabase.from("task_reports").insert({
-    user_id: session.userId,
-    user_task_id: userTaskId,
-    task_completed: taskCompleted,
-    rapport_comment: rapportComment,
-    content: contentMirror,
-    task_reference: null,
-  });
-
-  if (error) {
-    if (error.code === "23505" || /unique|duplicate/i.test(error.message)) {
-      return { error: "По этой задаче рапорт уже отправлен. Повторно отправить нельзя." };
-    }
-    return { error: error.message };
+  async function syncBatchTaskRows(bid: string, completed: boolean) {
+    await supabase
+      .from("user_tasks")
+      .update({ status: completed ? "done" : "pending" })
+      .eq("assignment_batch_id", bid);
   }
 
-  const { error: stErr } = await supabase
-    .from("user_tasks")
-    .update({ status: taskCompleted ? "done" : "pending" })
-    .eq("id", userTaskId)
-    .eq("user_id", session.userId);
+  if (!batchId) {
+    const { data: existing, error: exErr } = await supabase
+      .from("task_reports")
+      .select("id")
+      .eq("user_task_id", userTaskId)
+      .maybeSingle();
 
-  if (stErr) return { error: stErr.message };
+    if (exErr) return { error: exErr.message };
+    if (existing) return { error: "По этой задаче рапорт уже отправлен. Повторно отправить нельзя." };
+
+    const { error } = await supabase.from("task_reports").insert({
+      user_id: session.userId,
+      user_task_id: userTaskId,
+      assignment_batch_id: null,
+      task_completed: taskCompleted,
+      rapport_comment: rapportComment,
+      content: contentMirror,
+      task_reference: null,
+    });
+
+    if (error) {
+      if (error.code === "23505" || /unique|duplicate/i.test(error.message)) {
+        return { error: "По этой задаче рапорт уже отправлен. Повторно отправить нельзя." };
+      }
+      return { error: error.message };
+    }
+
+    const { error: stErr } = await supabase
+      .from("user_tasks")
+      .update({ status: taskCompleted ? "done" : "pending" })
+      .eq("id", userTaskId)
+      .eq("user_id", session.userId);
+
+    if (stErr) return { error: stErr.message };
+  } else {
+    const { data: batchRep, error: brErr } = await supabase
+      .from("task_reports")
+      .select("id, task_completed")
+      .eq("assignment_batch_id", batchId)
+      .maybeSingle();
+
+    if (brErr) return { error: brErr.message };
+    if (batchRep?.task_completed === true) {
+      return {
+        error:
+          "По этой общей задаче уже есть рапорт об успешном выполнении. Другой рапорт отправить нельзя.",
+      };
+    }
+
+    if (!batchRep) {
+      const { error } = await supabase.from("task_reports").insert({
+        user_id: session.userId,
+        user_task_id: null,
+        assignment_batch_id: batchId,
+        task_completed: taskCompleted,
+        rapport_comment: rapportComment,
+        content: contentMirror,
+        task_reference: null,
+      });
+      if (error) {
+        if (error.code === "23505" || /unique|duplicate/i.test(error.message)) {
+          return {
+            error:
+              "По этой общей задаче уже есть рапорт об успешном выполнении. Другой рапорт отправить нельзя.",
+          };
+        }
+        return { error: error.message };
+      }
+      await syncBatchTaskRows(batchId, taskCompleted);
+    } else {
+      const { error } = await supabase
+        .from("task_reports")
+        .update({
+          user_id: session.userId,
+          task_completed: taskCompleted,
+          rapport_comment: rapportComment,
+          content: contentMirror,
+        })
+        .eq("id", batchRep.id as string);
+
+      if (error) return { error: error.message };
+      await syncBatchTaskRows(batchId, taskCompleted);
+    }
+  }
 
   revalidatePath("/dashboard/rapport");
   revalidatePath("/dashboard/tasks");
