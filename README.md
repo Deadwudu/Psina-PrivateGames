@@ -41,6 +41,12 @@ npm run dev
 2. В **Environment Variables** добавьте те же `NEXT_PUBLIC_SUPABASE_URL` и `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 3. Задеплойте. Укажите домен в Supabase → Auth → URL configuration.
 
+### Ошибка Vercel `MIDDLEWARE_INVOCATION_FAILED`
+
+Частая причина — устаревший паттерн с `request.cookies.set` в middleware (в Edge это падает). В репозитории используется исправленный вариант: только `NextResponse.cookies.set`.
+
+Также проверьте: переменные заданы для окружения **Production** и после изменения env сделан **Redeploy**.
+
 ## Триггер на `auth.users`
 
 Если при регистрации ошибка про триггер, в Supabase иногда нужно заменить в миграции строку `execute procedure public.handle_new_user ()` на `execute function public.handle_new_user ()` в зависимости от версии PostgreSQL в проекте.
