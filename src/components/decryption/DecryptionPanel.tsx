@@ -1,13 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { submitHackResult } from "@/app/dashboard/actions";
 
 const CORRECT_KEY = "3007";
 
+/** PDF из корня проекта, отдаётся через API (см. Object_300_Secret_File.pdf). */
+const SECRET_PDF_PATH = "/api/decryption-secret-pdf";
+
 export function DecryptionPanel() {
-  const router = useRouter();
   const [key, setKey] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -34,8 +35,12 @@ export function DecryptionPanel() {
       return;
     }
     setDone(true);
-    setMessage("Дешифровка успешна. Результат записан.");
-    setTimeout(() => router.push("/dashboard"), 2200);
+    const opened = window.open(SECRET_PDF_PATH, "_blank", "noopener,noreferrer");
+    setMessage(
+      opened
+        ? "Дешифровка успешна. Документ открыт в новой вкладке; результат записан."
+        : "Дешифровка успешна. Результат записан. Откройте документ по ссылке ниже (всплывающее окно заблокировано)."
+    );
   }
 
   return (
@@ -66,6 +71,18 @@ export function DecryptionPanel() {
             }`}
           >
             {message}
+          </p>
+        )}
+        {done && (
+          <p>
+            <a
+              href={SECRET_PDF_PATH}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-[var(--accent)] underline hover:text-[var(--accent-dim)]"
+            >
+              Object_300_Secret_File.pdf — открыть снова
+            </a>
           </p>
         )}
         <button type="submit" className="btn-primary" disabled={busy || done}>

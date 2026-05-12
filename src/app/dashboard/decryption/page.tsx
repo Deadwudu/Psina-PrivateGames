@@ -11,7 +11,7 @@ export default function DecryptionPage() {
       </Link>
       <h1 className="mb-2 text-2xl font-semibold">Дешифровка документов</h1>
       <p className="mb-6 text-sm text-[var(--muted)]">
-        Введите ключ шифрования. При верном значении результат фиксируется в системе.
+        Введите ключ шифрования. При верном значении результат фиксируется в системе и открывается архивный PDF.
       </p>
       <DecryptionPanel />
     </div>
