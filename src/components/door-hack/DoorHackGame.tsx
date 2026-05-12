@@ -74,7 +74,10 @@ export function DoorHackGame() {
       portLetter: portsOrder[i],
       expectsWire: wiresOrder[i],
     }));
-    return { wiresOrder, portSlots, hints };
+    const wireVisualOrder = shuffle([...wiresOrder]);
+    const portVisualOrder = shuffle([...portSlots]);
+    const hintsShuffled = shuffle([...hints]);
+    return { wiresOrder, portSlots, hints, wireVisualOrder, portVisualOrder, hintsShuffled };
   }, []);
 
   const [wired, setWired] = useState<Record<string, string | null>>({});
@@ -254,22 +257,24 @@ export function DoorHackGame() {
                 )}
               </p>
               <div className="mb-8 flex flex-wrap items-center gap-3 sm:gap-4">
-                {wirePuzzle.hints.map((h) => (
+                {wirePuzzle.hintsShuffled.map((h) => (
                   <div
                     key={`${h.wire}-${h.port}`}
                     className="flex items-center gap-2 rounded-2xl border-2 border-white/35 bg-zinc-950 px-3 py-2 shadow-xl ring-1 ring-white/15 sm:gap-3 sm:px-4 sm:py-3"
+                    title={`${COLOR[h.wire].name} → ${COLOR[h.port].name}`}
                   >
-                    <span
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border-2 border-white/60 sm:h-12 sm:w-12 ${COLOR[h.wire].bg} font-mono text-base font-bold text-white shadow-md sm:text-lg`}
-                    >
-                      {h.wire}
+                    <span className="sr-only">
+                      {COLOR[h.wire].name} к {COLOR[h.port].name}
                     </span>
+                    <span
+                      className={`h-11 w-11 shrink-0 rounded-lg border-2 border-white/80 shadow-md sm:h-12 sm:w-12 ${COLOR[h.wire].bg}`}
+                      aria-hidden
+                    />
                     <span className="select-none text-xl font-bold text-white drop-shadow-md sm:text-2xl">→</span>
                     <span
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border-2 border-white/60 sm:h-12 sm:w-12 ${COLOR[h.port].bg} font-mono text-base font-bold text-white shadow-md sm:text-lg`}
-                    >
-                      {h.port}
-                    </span>
+                      className={`h-11 w-11 shrink-0 rounded-lg border-2 border-white/80 shadow-md sm:h-12 sm:w-12 ${COLOR[h.port].bg}`}
+                      aria-hidden
+                    />
                   </div>
                 ))}
               </div>
@@ -278,7 +283,7 @@ export function DoorHackGame() {
                 <div className="flex flex-1 flex-col gap-6 sm:max-w-[45%]">
                   <span className="sr-only">Провода</span>
                   <div className="flex flex-col gap-8 sm:gap-10">
-                    {wirePuzzle.wiresOrder.map((w, i) => {
+                    {wirePuzzle.wireVisualOrder.map((w, i) => {
                       if (usedWires.has(w)) return null;
                       const c = COLOR[w];
                       const sel = tapWire === w;
@@ -297,7 +302,8 @@ export function DoorHackGame() {
                           }}
                           onClick={() => setTapWire((t) => (t === w ? null : w))}
                           style={{
-                            marginTop: WIRE_STAGGER_Y[i % WIRE_STAGGER_Y.length],
+                            marginTop:
+                              WIRE_STAGGER_Y[i % WIRE_STAGGER_Y.length] + (w.charCodeAt(0) % 5) * 10,
                             marginLeft: coarsePointer ? 0 : WIRE_STAGGER_X[i % WIRE_STAGGER_X.length],
                           }}
                           className={`h-[52px] w-full max-w-[220px] shrink-0 rounded-2xl border-4 border-white/35 ${c.bg} shadow-lg sm:h-16 sm:w-36 ${
@@ -312,7 +318,7 @@ export function DoorHackGame() {
                 <div className="flex flex-1 flex-col items-stretch gap-8 sm:items-end sm:gap-10 sm:max-w-[45%]">
                   <span className="sr-only">Порты</span>
                   <div className="flex w-full flex-col items-stretch gap-8 sm:items-end sm:gap-10">
-                    {wirePuzzle.portSlots.map((slot, i) => {
+                    {wirePuzzle.portVisualOrder.map((slot, i) => {
                       const c = COLOR[slot.portLetter];
                       const ok = wired[slot.portLetter] === slot.expectsWire;
                       return (
@@ -332,7 +338,9 @@ export function DoorHackGame() {
                           }
                           onClick={() => tryConnectPort(slot)}
                           style={{
-                            marginTop: PORT_STAGGER_Y[i % PORT_STAGGER_Y.length],
+                            marginTop:
+                              PORT_STAGGER_Y[i % PORT_STAGGER_Y.length] +
+                              (slot.portLetter.charCodeAt(0) % 5) * 10,
                             marginRight: coarsePointer ? 0 : PORT_STAGGER_X[i % PORT_STAGGER_X.length],
                           }}
                           className={`relative h-[52px] w-full max-w-[220px] shrink-0 rounded-2xl border-4 border-dashed transition-colors sm:h-16 sm:w-40 sm:max-w-none ${
