@@ -222,7 +222,12 @@ export default async function AdminPage() {
               )}
               {(hacks ?? []).map((h) => {
                 const u = userById[h.user_id as string];
-                const details = h.details as { notes?: string } | null;
+                const details = h.details as {
+                  notes?: string;
+                  doorMinigame?: boolean;
+                  key?: string;
+                  wireHints?: string;
+                } | null;
                 return (
                   <tr key={h.id} className="border-t border-[var(--border)]">
                     <td className="whitespace-nowrap p-3 text-[var(--muted)]">
@@ -232,7 +237,17 @@ export default async function AdminPage() {
                     <td className="p-3">{u?.role ? (roleLabel[u.role] ?? u.role) : "—"}</td>
                     <td className="p-3">{activityLabel[h.activity_type as string] ?? h.activity_type}</td>
                     <td className="p-3">{h.success ? "успех" : "провал"}</td>
-                    <td className="max-w-md p-3 whitespace-pre-wrap">{details?.notes ?? "—"}</td>
+                    <td className="max-w-md p-3 whitespace-pre-wrap">
+                      <span>{details?.notes ?? "—"}</span>
+                      {details?.doorMinigame && h.activity_type === "door" && (
+                        <p className="mt-2 text-xs text-emerald-400/90">
+                          Мини-игра: код {details.key ? <span className="font-mono">{details.key}</span> : "—"}
+                          {details.wireHints ? (
+                            <span className="block text-[var(--muted)]">Провода: {details.wireHints}</span>
+                          ) : null}
+                        </p>
+                      )}
+                    </td>
                   </tr>
                 );
               })}

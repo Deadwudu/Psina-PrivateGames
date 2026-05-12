@@ -65,12 +65,26 @@ export async function submitHackResult(
   const successRaw = formData.get("success") as string;
   const success = successRaw === "true";
   const notes = ((formData.get("notes") as string) || "").trim();
+  const detailsJson = formData.get("details_json");
+
+  const details: Record<string, unknown> = {};
+  if (notes) details.notes = notes;
+  if (typeof detailsJson === "string" && detailsJson.trim()) {
+    try {
+      const parsed = JSON.parse(detailsJson) as unknown;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        Object.assign(details, parsed as Record<string, unknown>);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
 
   const { error } = await supabase.from("hack_results").insert({
     user_id: session.userId,
     activity_type: activityType,
     success,
-    details: { notes },
+    details,
   });
   if (error) return { error: error.message };
 
@@ -81,5 +95,6 @@ export async function submitHackResult(
         ? "/dashboard/server-hack"
         : "/dashboard/decryption";
   revalidatePath(path);
+  revalidatePath("/admin");
   return { ok: true as const };
 }
