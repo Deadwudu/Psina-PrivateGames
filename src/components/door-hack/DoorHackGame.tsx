@@ -23,7 +23,42 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-const TARGET_KEY = "WYZPAL";
+const KEY_LENGTH = 6;
+
+/** Слова кода (ровно KEY_LENGTH латинских букв A–Z). */
+const CODE_WORDS = [
+  "ACCESS",
+  "BYPASS",
+  "BREACH",
+  "CIPHER",
+  "CLIENT",
+  "DEVICE",
+  "ESCAPE",
+  "HANDLE",
+  "INSERT",
+  "MATRIX",
+  "MODULE",
+  "OUTPUT",
+  "PARSER",
+  "PORTAL",
+  "REMOTE",
+  "SECURE",
+  "SERIAL",
+  "SERVER",
+  "SIGNAL",
+  "STATIC",
+  "STREAM",
+  "STRIKE",
+  "SWITCH",
+  "SYSTEM",
+  "UNLOCK",
+  "WYZPAL",
+] as const;
+
+function pickCodeWord(): string {
+  const ok = CODE_WORDS.filter((w) => w.length === KEY_LENGTH);
+  return ok[Math.floor(Math.random() * ok.length)] ?? "ACCESS";
+}
 
 /** Смещения (px): провода и порты не в одну линию */
 const WIRE_STAGGER_Y = [0, 36, 14];
@@ -33,16 +68,22 @@ const PORT_STAGGER_X = [0, -18, 12];
 
 type StripCell = { ch: string; green: boolean };
 
-function buildStrip(target: string): StripCell[] {
+function randomAz(): string {
+  return String.fromCharCode(65 + Math.floor(Math.random() * 26));
+}
+
+/** Лента: много случайных букв; все ячейки с буквой цели подсвечиваются (green). */
+function buildStrip(targetLetter: string): StripCell[] {
   const len = 48;
   const out: StripCell[] = [];
   for (let i = 0; i < len; i++) {
-    if (i === 22) {
-      out.push({ ch: target, green: true });
-      continue;
-    }
-    const c = String.fromCharCode(65 + Math.floor(Math.random() * 26));
-    out.push({ ch: c, green: false });
+    const ch = Math.random() < 0.38 ? targetLetter : randomAz();
+    out.push({ ch, green: ch === targetLetter });
+  }
+  while (out.filter((c) => c.ch === targetLetter).length < 6) {
+    const idx = out.findIndex((c) => c.ch !== targetLetter);
+    if (idx === -1) break;
+    out[idx] = { ch: targetLetter, green: true };
   }
   return out;
 }
@@ -80,15 +121,21 @@ export function DoorHackGame() {
     return { wiresOrder, portSlots, hints, wireVisualOrder, portVisualOrder, hintsShuffled };
   }, []);
 
+  const codePuzzle = useMemo(() => {
+    const targetKey = pickCodeWord();
+    const keyChars = targetKey.split("");
+    const strips = keyChars.map((c) => buildStrip(c));
+    return { targetKey, keyChars, strips };
+  }, []);
+
   const [wired, setWired] = useState<Record<string, string | null>>({});
   const dragWire = useRef<Letter | null>(null);
   const [tapWire, setTapWire] = useState<Letter | null>(null);
 
-  const keyChars = useMemo(() => TARGET_KEY.split(""), []);
-  const strips = useMemo(() => keyChars.map((c) => buildStrip(c)), [keyChars]);
-  const [offsets, setOffsets] = useState(() => keyChars.map(() => Math.random() * 200));
-  const [stopped, setStopped] = useState(() => keyChars.map(() => false));
-  const [picked, setPicked] = useState<(string | null)[]>(() => keyChars.map(() => null));
+  const { targetKey, keyChars, strips } = codePuzzle;
+  const [offsets, setOffsets] = useState(() => codePuzzle.keyChars.map(() => Math.random() * 200));
+  const [stopped, setStopped] = useState(() => codePuzzle.keyChars.map(() => false));
+  const [picked, setPicked] = useState<(string | null)[]>(() => codePuzzle.keyChars.map(() => null));
   const rafRef = useRef<number | null>(null);
   const [matrixHint, setMatrixHint] = useState<string | null>(null);
   const hackSent = useRef(false);
@@ -166,7 +213,7 @@ export function DoorHackGame() {
         "details_json",
         JSON.stringify({
           doorMinigame: true,
-          key: TARGET_KEY,
+          key: targetKey,
           wireHints: wirePuzzle.hints.map((h) => `${h.wire}→${h.port}`).join(", "),
         })
       );
@@ -182,7 +229,7 @@ export function DoorHackGame() {
     return () => {
       cancelled = true;
     };
-  }, [phase, matrixDone, wirePuzzle.hints]);
+  }, [phase, matrixDone, wirePuzzle.hints, targetKey]);
 
   useEffect(() => {
     if (phase !== "victory") return;
@@ -372,7 +419,7 @@ export function DoorHackGame() {
             <div className="panel relative">
               <p className="mb-2 text-sm text-[var(--muted)]">
                 Этап 2. Нажмите на колонку, чтобы остановить прокрутку. В центре линии должны оказаться зелёные буквы
-                кода <span className="font-mono text-[var(--accent)]">{TARGET_KEY}</span>. Неверно — снова нажмите ту
+                кода <span className="font-mono text-[var(--accent)]">{targetKey}</span>. Неверно — снова нажмите ту
                 же колонку, чтобы крутить дальше.
               </p>
               <div className="mt-4 flex flex-wrap items-end justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-black/40 p-3 sm:gap-2 sm:p-4">
