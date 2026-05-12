@@ -23,7 +23,9 @@ export default function RegisterPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        /* Не задаём emailRedirectTo по умолчанию: иначе Supabase валидирует URL
+           и даёт «Invalid path», если в Dashboard не добавлен точный callback
+           или отключено подтверждение email. Редирект после письма — через Site URL в Supabase. */
         data: {
           display_name: displayName || email.split("@")[0],
           role: side,
