@@ -53,5 +53,5 @@ create index hack_results_type_idx on public.hack_results (activity_type);
 
 -- RLS отключён: доступ к данным только через Next.js с service_role (как Node-сервер в Diplom).
 
--- Назначить администратора:
--- update public.game_users set role = 'admin' where username = 'ваш_позывной';
+-- Назначить администратора (позывной в citext — регистр не важен):
+-- update public.game_users set role = 'admin' where username = 'Бобер';

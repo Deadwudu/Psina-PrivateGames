@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getSession } from "@/lib/auth/session";
-import { createUserTask, toggleTaskStatus } from "@/app/dashboard/actions";
+import { toggleTaskStatus } from "@/app/dashboard/actions";
 import { redirect } from "next/navigation";
 
 export default async function TasksPage() {
@@ -20,37 +20,33 @@ export default async function TasksPage() {
       <Link href="/dashboard" className="mb-6 inline-block text-sm text-[var(--muted)] hover:text-[var(--accent)]">
         ← На главный экран
       </Link>
-      <h1 className="mb-6 text-2xl font-semibold">Мои задачи</h1>
+      <h1 className="mb-2 text-2xl font-semibold">Мои задачи</h1>
+      <p className="mb-6 text-sm text-[var(--muted)]">
+        Задания выдаёт администратор. Здесь заголовок и полный текст задачи.
+      </p>
 
-      <div className="panel mb-8">
-        <h2 className="mb-4 text-sm font-medium text-[var(--muted)]">Новая задача (черновик для мероприятия)</h2>
-        <form action={createUserTask} className="space-y-3">
-          <input name="title" className="input" placeholder="Название" required />
-          <textarea name="description" className="input min-h-[80px]" placeholder="Описание (необязательно)" />
-          <button type="submit" className="btn-primary">
-            Добавить
-          </button>
-        </form>
-      </div>
-
-      <ul className="space-y-3">
+      <ul className="space-y-4">
         {(tasks ?? []).length === 0 && (
           <li className="rounded-xl border border-dashed border-[var(--border)] p-8 text-center text-[var(--muted)]">
-            Пока нет задач. Администратор может добавить вам задания в Supabase или вы создаёте свои выше.
+            Пока нет задач. Администратор выдаст их в панели «Администратор».
           </li>
         )}
         {(tasks ?? []).map((t) => (
-          <li key={t.id} className="panel flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="font-medium">{t.title}</p>
-              {t.description && (
-                <p className="mt-1 text-sm text-[var(--muted)]">{t.description}</p>
-              )}
-              <p className="mt-2 text-xs uppercase tracking-wide text-[var(--muted)]">
-                Статус: {t.status}
+          <li key={t.id} className="panel flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg font-semibold leading-snug">{t.title}</h2>
+              <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text)]">
+                {(t.description as string | null)?.trim() ? (
+                  (t.description as string)
+                ) : (
+                  <span className="text-[var(--muted)]">Текст задания не указан.</span>
+                )}
+              </div>
+              <p className="mt-3 text-xs uppercase tracking-wide text-[var(--muted)]">
+                Статус: {t.status === "done" ? "выполнено" : "в работе"}
               </p>
             </div>
-            <form action={toggleTaskStatus}>
+            <form action={toggleTaskStatus} className="shrink-0">
               <input type="hidden" name="task_id" value={t.id} />
               <input
                 type="hidden"

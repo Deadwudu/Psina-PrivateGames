@@ -53,28 +53,6 @@ export async function submitHackResult(
   return { ok: true as const };
 }
 
-export async function createUserTask(formData: FormData): Promise<void> {
-  const session = await getSession();
-  if (!session) return;
-
-  const supabase = createServiceClient();
-  const title = (formData.get("title") as string)?.trim();
-  if (!title) return;
-  const description = (formData.get("description") as string)?.trim() || null;
-
-  const { error } = await supabase.from("user_tasks").insert({
-    user_id: session.userId,
-    title,
-    description,
-    status: "pending",
-  });
-  if (error) {
-    console.error(error.message);
-    return;
-  }
-  revalidatePath("/dashboard/tasks");
-}
-
 export async function toggleTaskStatus(formData: FormData): Promise<void> {
   const session = await getSession();
   if (!session) return;
