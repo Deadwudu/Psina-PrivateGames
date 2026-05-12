@@ -24,9 +24,12 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 const TARGET_KEY = "WYZPAL";
-const LINE = 28;
-const COL_H = 140;
-const CENTER = COL_H / 2 - LINE / 2;
+
+/** Смещения (px): провода и порты не в одну линию */
+const WIRE_STAGGER_Y = [0, 36, 14];
+const WIRE_STAGGER_X = [0, 14, -10];
+const PORT_STAGGER_Y = [22, 0, 48];
+const PORT_STAGGER_X = [0, -18, 12];
 
 type StripCell = { ch: string; green: boolean };
 
@@ -46,6 +49,20 @@ function buildStrip(target: string): StripCell[] {
 
 export function DoorHackGame() {
   const router = useRouter();
+  const [coarsePointer, setCoarsePointer] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(pointer: coarse)");
+    const apply = () => setCoarsePointer(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  const linePx = coarsePointer ? 36 : 28;
+  const colH = coarsePointer ? 192 : 140;
+  const centerY = colH / 2 - linePx / 2;
+
   const [phase, setPhase] = useState<"panel" | "wires" | "matrix" | "victory">("panel");
   const [panelSlide, setPanelSlide] = useState(false);
 
@@ -77,14 +94,14 @@ export function DoorHackGame() {
     setOffsets((prev) =>
       prev.map((o, i) => {
         if (stopped[i]) return o;
-        const stripLen = strips[i].length * LINE;
-        let n = o + 1.2;
+        const stripLen = strips[i].length * linePx;
+        let n = o + (coarsePointer ? 1.6 : 1.2);
         if (n > stripLen) n = 0;
         return n;
       })
     );
     rafRef.current = requestAnimationFrame(tick);
-  }, [stopped, strips]);
+  }, [stopped, strips, linePx, coarsePointer]);
 
   useEffect(() => {
     if (phase !== "matrix") return;
@@ -94,10 +111,10 @@ export function DoorHackGame() {
     };
   }, [phase, tick]);
 
-  function charAtCenter(col: number): string {
+  function readCharAtCenter(col: number): string {
     const strip = strips[col];
     const o = offsets[col];
-    const idx = Math.floor((o + CENTER) / LINE) % strip.length;
+    const idx = Math.floor((o + centerY) / linePx) % strip.length;
     return strip[idx]?.ch ?? "?";
   }
 
@@ -116,7 +133,7 @@ export function DoorHackGame() {
       setMatrixHint(null);
       return;
     }
-    const ch = charAtCenter(col);
+    const ch = readCharAtCenter(col);
     const ok = ch === keyChars[col];
     setStopped((s) => {
       const n = [...s];
@@ -197,13 +214,17 @@ export function DoorHackGame() {
     Object.values(wired).filter((v): v is string => typeof v === "string" && v.length > 0)
   );
 
+  const useDrag = !coarsePointer;
+
   return (
-    <div className="relative mx-auto max-w-3xl">
+    <div
+      className="relative mx-auto max-w-3xl touch-manipulation select-none [-webkit-tap-highlight-color:transparent]"
+    >
       {phase === "panel" && (
         <button
           type="button"
           onClick={openPanel}
-          className="panel relative flex min-h-[280px] w-full flex-col items-center justify-center overflow-hidden text-center transition-opacity hover:opacity-95"
+          className="panel relative flex min-h-[min(280px,70dvh)] w-full flex-col items-center justify-center overflow-hidden text-center active:bg-white/[0.04]"
         >
           <p className="mb-2 text-sm text-[var(--muted)]">Панель доступа</p>
           <p className="text-lg font-medium">Нажмите, чтобы снять крышку</p>
@@ -221,97 +242,116 @@ export function DoorHackGame() {
         <>
           {phase === "wires" && (
             <div className="panel">
-              <p className="mb-4 text-sm text-[var(--muted)]">
-                Подсказка: слева буква — цвет провода, справа — цвет порта. Перетащите провод в порт или нажмите
-                провод, затем порт.
-              </p>
-              <div className="mb-6 flex flex-wrap gap-3 text-sm">
-                {wirePuzzle.hints.map((h) => (
-                  <span
-                    key={`${h.wire}-${h.port}`}
-                    className="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-1 font-mono"
-                  >
-                    <span className={COLOR[h.wire].text}>{h.wire}</span>
-                    <span className="text-[var(--muted)]"> — </span>
-                    <span className={COLOR[h.port].text}>{h.port}</span>
+              <p className="mb-3 text-sm text-zinc-300">
+                Соедините цветные провода с цветными портами по подсказкам.
+                {coarsePointer ? (
+                  <span className="mt-1 block font-medium text-zinc-100">
+                    На телефоне: нажмите провод (подсветится), затем нужный порт. Перетаскивание отключено — так
+                    стабильнее на тачскрине.
                   </span>
+                ) : (
+                  <span className="mt-1 block">На ПК можно перетащить провод в порт или использовать два клика.</span>
+                )}
+              </p>
+              <div className="mb-8 flex flex-wrap items-center gap-3 sm:gap-4">
+                {wirePuzzle.hints.map((h) => (
+                  <div
+                    key={`${h.wire}-${h.port}`}
+                    className="flex items-center gap-2 rounded-2xl border-2 border-white/35 bg-zinc-950 px-3 py-2 shadow-xl ring-1 ring-white/15 sm:gap-3 sm:px-4 sm:py-3"
+                  >
+                    <span
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border-2 border-white/60 sm:h-12 sm:w-12 ${COLOR[h.wire].bg} font-mono text-base font-bold text-white shadow-md sm:text-lg`}
+                    >
+                      {h.wire}
+                    </span>
+                    <span className="select-none text-xl font-bold text-white drop-shadow-md sm:text-2xl">→</span>
+                    <span
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border-2 border-white/60 sm:h-12 sm:w-12 ${COLOR[h.port].bg} font-mono text-base font-bold text-white shadow-md sm:text-lg`}
+                    >
+                      {h.port}
+                    </span>
+                  </div>
                 ))}
               </div>
 
-              <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="mb-3 text-xs uppercase tracking-wide text-[var(--muted)]">Провода</p>
-                  <div className="flex flex-col gap-4">
-                    {wirePuzzle.wiresOrder.map((w) => {
+              <div className="relative flex min-h-[280px] flex-col gap-10 sm:min-h-[300px] sm:flex-row sm:justify-between sm:gap-10">
+                <div className="flex flex-1 flex-col gap-6 sm:max-w-[45%]">
+                  <span className="sr-only">Провода</span>
+                  <div className="flex flex-col gap-8 sm:gap-10">
+                    {wirePuzzle.wiresOrder.map((w, i) => {
                       if (usedWires.has(w)) return null;
                       const c = COLOR[w];
                       const sel = tapWire === w;
                       return (
-                        <div
+                        <button
                           key={w}
-                          role="button"
-                          tabIndex={0}
-                          draggable
+                          type="button"
+                          draggable={useDrag}
+                          aria-label={`Провод: ${c.name}`}
                           onDragStart={() => {
+                            if (!useDrag) return;
                             dragWire.current = w;
                           }}
                           onDragEnd={() => {
                             dragWire.current = null;
                           }}
                           onClick={() => setTapWire((t) => (t === w ? null : w))}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              setTapWire((t) => (t === w ? null : w));
-                            }
+                          style={{
+                            marginTop: WIRE_STAGGER_Y[i % WIRE_STAGGER_Y.length],
+                            marginLeft: coarsePointer ? 0 : WIRE_STAGGER_X[i % WIRE_STAGGER_X.length],
                           }}
-                          className={`flex cursor-grab items-center gap-2 rounded-lg border-2 ${c.border} ${c.bg} px-4 py-3 shadow-md active:cursor-grabbing ${c.text} ${
-                            sel ? "ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg)]" : ""
-                          }`}
-                        >
-                          <span className="font-mono text-lg font-bold">{w}</span>
-                          <span className="text-xs opacity-90">{c.name}</span>
-                        </div>
+                          className={`h-[52px] w-full max-w-[220px] shrink-0 rounded-2xl border-4 border-white/35 ${c.bg} shadow-lg sm:h-16 sm:w-36 ${
+                            useDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer active:opacity-90"
+                          } ${sel ? "ring-4 ring-sky-400 ring-offset-4 ring-offset-[var(--panel)]" : ""}`}
+                        />
                       );
                     })}
                   </div>
                 </div>
 
-                <div className="flex-1">
-                  <p className="mb-3 text-xs uppercase tracking-wide text-[var(--muted)]">Порты</p>
-                  <div className="flex flex-col gap-4">
-                    {wirePuzzle.portSlots.map((slot) => {
+                <div className="flex flex-1 flex-col items-stretch gap-8 sm:items-end sm:gap-10 sm:max-w-[45%]">
+                  <span className="sr-only">Порты</span>
+                  <div className="flex w-full flex-col items-stretch gap-8 sm:items-end sm:gap-10">
+                    {wirePuzzle.portSlots.map((slot, i) => {
                       const c = COLOR[slot.portLetter];
                       const ok = wired[slot.portLetter] === slot.expectsWire;
                       return (
-                        <div
+                        <button
                           key={slot.portLetter}
-                          role="button"
-                          tabIndex={0}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            tryConnectPort(slot);
-                            dragWire.current = null;
-                          }}
+                          type="button"
+                          aria-label={`Порт: ${c.name}`}
+                          onDragOver={useDrag ? (e) => e.preventDefault() : undefined}
+                          onDrop={
+                            useDrag
+                              ? (e) => {
+                                  e.preventDefault();
+                                  tryConnectPort(slot);
+                                  dragWire.current = null;
+                                }
+                              : undefined
+                          }
                           onClick={() => tryConnectPort(slot)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              tryConnectPort(slot);
-                            }
+                          style={{
+                            marginTop: PORT_STAGGER_Y[i % PORT_STAGGER_Y.length],
+                            marginRight: coarsePointer ? 0 : PORT_STAGGER_X[i % PORT_STAGGER_X.length],
                           }}
-                          className={`min-h-[56px] cursor-pointer rounded-lg border-2 border-dashed px-4 py-3 transition-colors ${
-                            ok ? "border-emerald-400 bg-emerald-500/10" : `${c.border} bg-[var(--bg)] hover:bg-white/5`
+                          className={`relative h-[52px] w-full max-w-[220px] shrink-0 rounded-2xl border-4 border-dashed transition-colors sm:h-16 sm:w-40 sm:max-w-none ${
+                            coarsePointer ? "self-stretch sm:self-end" : "self-end"
+                          } ${
+                            ok
+                              ? "border-emerald-300 bg-emerald-500/25 shadow-[0_0_24px_rgba(52,211,153,0.35)]"
+                              : `${c.border} border-opacity-90 bg-black/30 active:bg-white/15 sm:hover:bg-white/10`
                           }`}
                         >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className={`text-sm font-medium ${c.text}`}>
-                              Порт {slot.portLetter} · {c.name}
+                          {ok && (
+                            <span
+                              className="pointer-events-none absolute inset-0 flex items-center justify-center text-3xl font-bold text-emerald-200 drop-shadow"
+                              aria-hidden
+                            >
+                              ✓
                             </span>
-                            {ok && <span className="text-xs text-emerald-400">{wired[slot.portLetter]} ✓</span>}
-                          </div>
-                        </div>
+                          )}
+                        </button>
                       );
                     })}
                   </div>
@@ -327,17 +367,17 @@ export function DoorHackGame() {
                 кода <span className="font-mono text-[var(--accent)]">{TARGET_KEY}</span>. Неверно — снова нажмите ту
                 же колонку, чтобы крутить дальше.
               </p>
-              <div className="mt-4 flex flex-wrap items-end justify-center gap-2 rounded-xl border border-[var(--border)] bg-black/40 p-4">
+              <div className="mt-4 flex flex-wrap items-end justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-black/40 p-3 sm:gap-2 sm:p-4">
                 {keyChars.map((_, col) => (
                   <button
                     key={col}
                     type="button"
                     onClick={() => onColumnClick(col)}
-                    className="relative flex w-10 flex-col items-center overflow-hidden rounded border border-[var(--border)] bg-zinc-900/80"
-                    style={{ height: COL_H }}
+                    className="relative flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center overflow-hidden rounded-lg border border-[var(--border)] bg-zinc-900/80 sm:max-w-[56px] sm:flex-none sm:rounded-md"
+                    style={{ height: colH, maxWidth: coarsePointer ? "52px" : undefined }}
                   >
                     <div
-                      className="absolute left-0 top-0 w-full will-change-transform"
+                      className="pointer-events-none absolute left-0 top-0 w-full will-change-transform"
                       style={{
                         transform: `translateY(-${offsets[col]}px)`,
                       }}
@@ -345,15 +385,16 @@ export function DoorHackGame() {
                       {strips[col].map((cell, i) => (
                         <div
                           key={i}
-                          className={`flex h-[28px] items-center justify-center font-mono text-sm ${
-                            cell.green ? "font-bold text-emerald-400" : "text-zinc-500"
-                          }`}
+                          className={`flex items-center justify-center font-mono font-medium ${
+                            cell.green ? "text-emerald-400" : "text-zinc-500"
+                          } ${coarsePointer ? "text-base" : "text-sm"}`}
+                          style={{ height: linePx, minHeight: linePx }}
                         >
                           {cell.ch}
                         </div>
                       ))}
                     </div>
-                    <div className="pointer-events-none absolute left-0 right-0 top-1/2 z-[1] h-0 -translate-y-1/2 border-t border-[var(--accent)]/60" />
+                    <div className="pointer-events-none absolute left-0 right-0 top-1/2 z-[1] h-0 -translate-y-1/2 border-t-2 border-[var(--accent)]/70" />
                   </button>
                 ))}
               </div>
