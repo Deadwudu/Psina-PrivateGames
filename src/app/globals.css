@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0c0e12;
+  --panel: #141820;
+  --border: #2a3142;
+  --text: #e8eaef;
+  --muted: #8b93a7;
+  --accent: #3d8bfd;
+  --accent-dim: #2563c9;
+}
+
+body {
+  color: var(--text);
+  background: var(--bg);
+}
+
+@layer utilities {
+  .panel {
+    @apply rounded-xl border border-[var(--border)] bg-[var(--panel)] p-6 shadow-lg;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors;
+  }
+  .btn-primary {
+    @apply btn bg-[var(--accent)] text-white hover:bg-[var(--accent-dim)];
+  }
+  .btn-secondary {
+    @apply btn border border-[var(--border)] bg-transparent text-[var(--text)] hover:bg-white/5;
+  }
+  .input {
+    @apply w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-[var(--text)] outline-none focus:border-[var(--accent)];
+  }
+}
