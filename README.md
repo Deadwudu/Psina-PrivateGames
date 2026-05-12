@@ -17,7 +17,14 @@
 1. Создайте проект на [supabase.com](https://supabase.com).
 2. **SQL Editor** → вставьте содержимое `supabase/migrations/001_initial.sql` → **Run**.
 3. **Authentication → Providers → Email**: включите email/password. Для теста можно отключить подтверждение email (**Confirm email** off).
-4. **Authentication → URL configuration**: добавьте `http://localhost:3000` и URL продакшена Vercel в **Redirect URLs** (для колбэка после подтверждения письма, если оно включено).
+4. **Authentication → URL configuration** (важно для продакшена на Vercel):
+   - **Site URL** укажите как основной адрес сайта: `https://ваш-проект.vercel.app` (не оставляйте только `localhost` для production-проекта).
+   - В **Redirect URLs** добавьте:
+     - `https://ваш-проект.vercel.app/**`
+     - `http://localhost:3000/**` (для локальной разработки)
+
+Иначе редиректы после входа и ссылки из писем могут вести на localhost, а часть сценариев авторизации на проде ведёт себя непредсказуемо.
+
 5. Назначьте администратора (замените email):
 
 ```sql
@@ -41,7 +48,12 @@ npm run dev
 2. В **Environment Variables** добавьте те же `NEXT_PUBLIC_SUPABASE_URL` и `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 3. Задеплойте. Укажите домен в Supabase → Auth → URL configuration.
 
-### Ошибка Vercel `MIDDLEWARE_INVOCATION_FAILED`
+### Ошибка на сайте Vercel «Application error» / digest
+
+1. **Vercel → Project → Settings → Environment Variables** — переменные должны быть для **Production**, после правок — **Redeploy**.
+2. **Vercel → Deployments → выбранный деплой → Logs / Runtime Logs** — там будет текст ошибки (если не хватает env, после правки в коде будет явное сообщение).
+3. Проверьте **Site URL** в Supabase (см. выше): для продакшена не оставляйте только `localhost`.
+
 
 Частая причина — устаревший паттерн с `request.cookies.set` в middleware (в Edge это падает). В репозитории используется исправленный вариант: только `NextResponse.cookies.set`.
 
