@@ -8,18 +8,49 @@ export async function submitTaskReport(formData: FormData) {
   const session = await getSession();
   if (!session) return { error: "Не авторизован" };
 
-  const supabase = createServiceClient();
-  const taskRef = (formData.get("task_reference") as string)?.trim() || null;
-  const content = (formData.get("content") as string)?.trim();
-  if (!content) return { error: "Введите текст рапорта" };
+  const userTaskId = (formData.get("user_task_id") as string)?.trim();
+  const taskCompleted = formData.get("task_completed") === "true";
+  const rapportComment = (formData.get("rapport_comment") as string) ?? "";
 
-  const { error } = await supabase.from("task_reports").insert({
-    user_id: session.userId,
-    task_reference: taskRef,
-    content,
-  });
+  if (!userTaskId) return { error: "Выберите задачу из списка" };
+
+  const supabase = createServiceClient();
+  const { data: task, error: taskErr } = await supabase
+    .from("user_tasks")
+    .select("id, user_id")
+    .eq("id", userTaskId)
+    .eq("user_id", session.userId)
+    .maybeSingle();
+
+  if (taskErr || !task) return { error: "Задача не найдена или не назначена вам" };
+
+  const contentMirror = rapportComment.trim() ? rapportComment : "(без комментария)";
+
+  const { error } = await supabase.from("task_reports").upsert(
+    {
+      user_id: session.userId,
+      user_task_id: userTaskId,
+      task_completed: taskCompleted,
+      rapport_comment: rapportComment,
+      content: contentMirror,
+      task_reference: null,
+    },
+    { onConflict: "user_task_id" }
+  );
+
   if (error) return { error: error.message };
+
+  const { error: stErr } = await supabase
+    .from("user_tasks")
+    .update({ status: taskCompleted ? "done" : "pending" })
+    .eq("id", userTaskId)
+    .eq("user_id", session.userId);
+
+  if (stErr) return { error: stErr.message };
+
   revalidatePath("/dashboard/rapport");
+  revalidatePath("/dashboard/tasks");
+  revalidatePath("/admin");
   return { ok: true as const };
 }
 
@@ -51,25 +82,4 @@ export async function submitHackResult(
         : "/dashboard/decryption";
   revalidatePath(path);
   return { ok: true as const };
-}
-
-export async function toggleTaskStatus(formData: FormData): Promise<void> {
-  const session = await getSession();
-  if (!session) return;
-
-  const supabase = createServiceClient();
-  const taskId = formData.get("task_id") as string;
-  const nextStatus = formData.get("next_status") as string;
-  if (!taskId || !nextStatus) return;
-
-  const { error } = await supabase
-    .from("user_tasks")
-    .update({ status: nextStatus })
-    .eq("id", taskId)
-    .eq("user_id", session.userId);
-  if (error) {
-    console.error(error.message);
-    return;
-  }
-  revalidatePath("/dashboard/tasks");
 }

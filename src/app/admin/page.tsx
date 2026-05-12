@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { AdminAssignTaskForm } from "@/components/AdminAssignTaskForm";
+import { AdminReportRowForm } from "@/components/AdminReportRowForm";
 
 type GameUserRow = {
   id: string;
@@ -17,6 +18,30 @@ type TaskRow = {
   game_users: { username: string } | { username: string }[] | null;
 };
 
+type ReportAdminRow = {
+  id: string;
+  user_id: string;
+  user_task_id: string | null;
+  task_completed: boolean | null;
+  rapport_comment: string | null;
+  content: string | null;
+  task_reference: string | null;
+  created_at: string;
+  game_users: { username: string; role?: string } | { username: string; role?: string }[] | null;
+  user_tasks: { title: string } | { title: string }[] | null;
+};
+
+function oneRel<T>(rel: T | T[] | null | undefined): T | null {
+  if (!rel) return null;
+  return Array.isArray(rel) ? rel[0] ?? null : rel;
+}
+
+function displayReportBody(r: ReportAdminRow): string {
+  const c = (r.rapport_comment ?? "").trim();
+  if (c) return r.rapport_comment ?? "";
+  return (r.content ?? "").trim();
+}
+
 export default async function AdminPage() {
   const supabase = createServiceClient();
 
@@ -26,7 +51,13 @@ export default async function AdminPage() {
     { data: users },
     { data: assignedTasks },
   ] = await Promise.all([
-    supabase.from("task_reports").select("*").order("created_at", { ascending: false }).limit(200),
+    supabase
+      .from("task_reports")
+      .select(
+        "id, user_id, user_task_id, task_completed, rapport_comment, content, task_reference, created_at, game_users(username, role), user_tasks(title)"
+      )
+      .order("created_at", { ascending: false })
+      .limit(200),
     supabase.from("hack_results").select("*").order("created_at", { ascending: false }).limit(200),
     supabase.from("game_users").select("id, username, role").order("username"),
     supabase
@@ -116,41 +147,52 @@ export default async function AdminPage() {
 
       <section className="mb-12">
         <h2 className="mb-4 text-lg font-medium">Рапорты по задачам</h2>
+        <p className="mb-4 text-sm text-[var(--muted)]">
+          Все игроки. Можно править отметку «выполнено» и комментарий — изменения синхронизируются с задачей участника.
+        </p>
         <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="bg-[var(--panel)] text-[var(--muted)]">
               <tr>
                 <th className="p-3 font-medium">Время</th>
                 <th className="p-3 font-medium">Участник</th>
                 <th className="p-3 font-medium">Сторона</th>
                 <th className="p-3 font-medium">Задача</th>
-                <th className="p-3 font-medium">Текст</th>
+                <th className="p-3 font-medium">Редактирование</th>
               </tr>
             </thead>
             <tbody>
-              {(reports ?? []).length === 0 && (
+              {!(reports && (reports as ReportAdminRow[]).length > 0) ? (
                 <tr>
                   <td colSpan={5} className="p-6 text-center text-[var(--muted)]">
                     Пока нет записей
                   </td>
                 </tr>
+              ) : (
+                (reports as ReportAdminRow[]).map((r) => {
+                  const u = userById[r.user_id as string];
+                  const gu = oneRel(r.game_users);
+                  const ut = oneRel(r.user_tasks);
+                  const taskTitle = ut?.title ?? r.task_reference ?? "—";
+                  return (
+                    <tr key={r.id} className="border-t border-[var(--border)] align-top">
+                      <td className="whitespace-nowrap p-3 text-[var(--muted)]">
+                        {new Date(r.created_at).toLocaleString("ru-RU")}
+                      </td>
+                      <td className="p-3">{gu?.username ?? u?.username ?? r.user_id}</td>
+                      <td className="p-3">{u?.role ? (roleLabel[u.role] ?? u.role) : "—"}</td>
+                      <td className="max-w-[180px] p-3 font-medium">{taskTitle}</td>
+                      <td className="max-w-[min(360px,40vw)] p-3">
+                        <AdminReportRowForm
+                          reportId={r.id}
+                          defaultCompleted={!!r.task_completed}
+                          defaultComment={displayReportBody(r)}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })
               )}
-              {(reports ?? []).map((r) => {
-                const u = userById[r.user_id as string];
-                return (
-                  <tr key={r.id} className="border-t border-[var(--border)]">
-                    <td className="whitespace-nowrap p-3 text-[var(--muted)]">
-                      {new Date(r.created_at).toLocaleString("ru-RU")}
-                    </td>
-                    <td className="p-3">{u?.username ?? r.user_id}</td>
-                    <td className="p-3">{u?.role ? (roleLabel[u.role] ?? u.role) : "—"}</td>
-                    <td className="max-w-[140px] truncate p-3 text-[var(--muted)]">
-                      {r.task_reference ?? "—"}
-                    </td>
-                    <td className="max-w-md p-3 whitespace-pre-wrap">{r.content}</td>
-                  </tr>
-                );
-              })}
             </tbody>
           </table>
         </div>

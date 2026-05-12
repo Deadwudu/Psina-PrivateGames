@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const items = [
   { href: "/dashboard/tasks", label: "Мои задачи", desc: "Назначенные задания" },
-  { href: "/dashboard/rapport", label: "Рапорт по задаче", desc: "Сохраняется в базе" },
+  { href: "/dashboard/rapport", label: "Рапорт по задаче", desc: "Задача, выполнение, комментарий" },
   { href: "/dashboard/door-hack", label: "Взлом двери", desc: "Фиксация результата" },
   { href: "/dashboard/server-hack", label: "Взлом сервера", desc: "Фиксация результата" },
   { href: "/dashboard/decryption", label: "Дешифровка документов", desc: "Фиксация результата" },
