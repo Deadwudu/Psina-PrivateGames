@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { SignOutButton } from "@/components/SignOutButton";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { isAppConfigured } from "@/lib/supabase/config";
+import { getSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
@@ -11,14 +11,11 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  if (!isSupabaseConfigured()) {
-    redirect("/login?missing=supabase");
+  if (!isAppConfigured()) {
+    redirect("/login?missing=config");
   }
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await getSession();
+  if (!session) redirect("/login");
 
   return (
     <div className="min-h-screen">

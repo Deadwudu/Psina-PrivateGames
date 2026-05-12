@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
 import { DashboardNav } from "@/components/DashboardNav";
+import { getSession } from "@/lib/auth/session";
 
 const roleLabels: Record<string, string> = {
   side_a: "Сторона А",
@@ -9,18 +9,10 @@ const roleLabels: Record<string, string> = {
 };
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name, role")
-    .eq("id", user!.id)
-    .single();
+  const session = await getSession();
+  if (!session) return null;
 
-  const role = profile?.role ?? "side_a";
-  const roleLabel = roleLabels[role] ?? role;
+  const roleLabel = roleLabels[session.role] ?? session.role;
 
   return (
     <div>
@@ -28,11 +20,10 @@ export default async function DashboardPage() {
         <div>
           <h1 className="text-2xl font-semibold">Главный экран</h1>
           <p className="text-[var(--muted)]">
-            {profile?.display_name ?? user?.email} ·{" "}
-            <span className="text-[var(--text)]">{roleLabel}</span>
+            {session.username} · <span className="text-[var(--text)]">{roleLabel}</span>
           </p>
         </div>
-        {role === "admin" && (
+        {session.role === "admin" && (
           <Link href="/admin" className="btn-secondary shrink-0 text-sm">
             Панель администратора
           </Link>

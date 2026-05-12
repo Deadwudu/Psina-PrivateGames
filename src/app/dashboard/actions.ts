@@ -1,21 +1,20 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { createServiceClient } from "@/lib/supabase/service";
+import { getSession } from "@/lib/auth/session";
 
 export async function submitTaskReport(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Не авторизован" };
+  const session = await getSession();
+  if (!session) return { error: "Не авторизован" };
 
+  const supabase = createServiceClient();
   const taskRef = (formData.get("task_reference") as string)?.trim() || null;
   const content = (formData.get("content") as string)?.trim();
   if (!content) return { error: "Введите текст рапорта" };
 
   const { error } = await supabase.from("task_reports").insert({
-    user_id: user.id,
+    user_id: session.userId,
     task_reference: taskRef,
     content,
   });
@@ -28,18 +27,16 @@ export async function submitHackResult(
   activityType: "door" | "server" | "decryption",
   formData: FormData
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Не авторизован" };
+  const session = await getSession();
+  if (!session) return { error: "Не авторизован" };
 
+  const supabase = createServiceClient();
   const successRaw = formData.get("success") as string;
   const success = successRaw === "true";
   const notes = ((formData.get("notes") as string) || "").trim();
 
   const { error } = await supabase.from("hack_results").insert({
-    user_id: user.id,
+    user_id: session.userId,
     activity_type: activityType,
     success,
     details: { notes },
@@ -57,18 +54,16 @@ export async function submitHackResult(
 }
 
 export async function createUserTask(formData: FormData): Promise<void> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  const session = await getSession();
+  if (!session) return;
 
+  const supabase = createServiceClient();
   const title = (formData.get("title") as string)?.trim();
   if (!title) return;
   const description = (formData.get("description") as string)?.trim() || null;
 
   const { error } = await supabase.from("user_tasks").insert({
-    user_id: user.id,
+    user_id: session.userId,
     title,
     description,
     status: "pending",
@@ -81,12 +76,10 @@ export async function createUserTask(formData: FormData): Promise<void> {
 }
 
 export async function toggleTaskStatus(formData: FormData): Promise<void> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  const session = await getSession();
+  if (!session) return;
 
+  const supabase = createServiceClient();
   const taskId = formData.get("task_id") as string;
   const nextStatus = formData.get("next_status") as string;
   if (!taskId || !nextStatus) return;
@@ -95,7 +88,7 @@ export async function toggleTaskStatus(formData: FormData): Promise<void> {
     .from("user_tasks")
     .update({ status: nextStatus })
     .eq("id", taskId)
-    .eq("user_id", user.id);
+    .eq("user_id", session.userId);
   if (error) {
     console.error(error.message);
     return;

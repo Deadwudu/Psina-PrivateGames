@@ -1,16 +1,18 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import { getSession } from "@/lib/auth/session";
 import { createUserTask, toggleTaskStatus } from "@/app/dashboard/actions";
+import { redirect } from "next/navigation";
 
 export default async function TasksPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  const supabase = createServiceClient();
   const { data: tasks } = await supabase
     .from("user_tasks")
     .select("*")
-    .eq("user_id", user!.id)
+    .eq("user_id", session.userId)
     .order("created_at", { ascending: false });
 
   return (

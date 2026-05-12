@@ -1,29 +1,34 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 
-type ProfileRow = {
+type GameUserRow = {
   id: string;
-  display_name: string | null;
-  email: string | null;
+  username: string;
   role: string;
 };
 
 export default async function AdminPage() {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
 
-  const [{ data: reports }, { data: hacks }, { data: profiles }] = await Promise.all([
+  const [{ data: reports }, { data: hacks }, { data: users }] = await Promise.all([
     supabase.from("task_reports").select("*").order("created_at", { ascending: false }).limit(200),
     supabase.from("hack_results").select("*").order("created_at", { ascending: false }).limit(200),
-    supabase.from("profiles").select("id, display_name, email, role"),
+    supabase.from("game_users").select("id, username, role"),
   ]);
 
-  const profileById = Object.fromEntries(
-    (profiles as ProfileRow[] | null)?.map((p) => [p.id, p]) ?? []
+  const userById = Object.fromEntries(
+    (users as GameUserRow[] | null)?.map((u) => [u.id, u]) ?? []
   );
 
   const activityLabel: Record<string, string> = {
     door: "Взлом двери",
     server: "Взлом сервера",
     decryption: "Дешифровка",
+  };
+
+  const roleLabel: Record<string, string> = {
+    side_a: "Сторона А",
+    side_b: "Сторона Б",
+    admin: "Админ",
   };
 
   return (
@@ -53,14 +58,14 @@ export default async function AdminPage() {
                 </tr>
               )}
               {(reports ?? []).map((r) => {
-                const p = profileById[r.user_id as string];
+                const u = userById[r.user_id as string];
                 return (
                   <tr key={r.id} className="border-t border-[var(--border)]">
                     <td className="whitespace-nowrap p-3 text-[var(--muted)]">
                       {new Date(r.created_at).toLocaleString("ru-RU")}
                     </td>
-                    <td className="p-3">{p?.display_name ?? p?.email ?? r.user_id}</td>
-                    <td className="p-3">{p?.role ?? "—"}</td>
+                    <td className="p-3">{u?.username ?? r.user_id}</td>
+                    <td className="p-3">{u?.role ? (roleLabel[u.role] ?? u.role) : "—"}</td>
                     <td className="max-w-[140px] truncate p-3 text-[var(--muted)]">
                       {r.task_reference ?? "—"}
                     </td>
@@ -96,15 +101,15 @@ export default async function AdminPage() {
                 </tr>
               )}
               {(hacks ?? []).map((h) => {
-                const p = profileById[h.user_id as string];
+                const u = userById[h.user_id as string];
                 const details = h.details as { notes?: string } | null;
                 return (
                   <tr key={h.id} className="border-t border-[var(--border)]">
                     <td className="whitespace-nowrap p-3 text-[var(--muted)]">
                       {new Date(h.created_at).toLocaleString("ru-RU")}
                     </td>
-                    <td className="p-3">{p?.display_name ?? p?.email ?? h.user_id}</td>
-                    <td className="p-3">{p?.role ?? "—"}</td>
+                    <td className="p-3">{u?.username ?? h.user_id}</td>
+                    <td className="p-3">{u?.role ? (roleLabel[u.role] ?? u.role) : "—"}</td>
                     <td className="p-3">{activityLabel[h.activity_type as string] ?? h.activity_type}</td>
                     <td className="p-3">{h.success ? "успех" : "провал"}</td>
                     <td className="max-w-md p-3 whitespace-pre-wrap">{details?.notes ?? "—"}</td>
