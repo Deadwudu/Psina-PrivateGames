@@ -54,6 +54,11 @@ npm run dev
 2. **Vercel → Deployments → выбранный деплой → Logs / Runtime Logs** — там будет текст ошибки (если не хватает env, после правки в коде будет явное сообщение).
 3. Проверьте **Site URL** в Supabase (см. выше): для продакшена не оставляйте только `localhost`.
 
+### Сборка на Vercel (Build Failed) из‑за Supabase
+
+Страницы `/dashboard` и `/admin` помечены как **динамические** (`force-dynamic`), а входные точки проверяют наличие `NEXT_PUBLIC_*` до вызова Supabase. Сборка не должна падать, если переменные вы добавите чуть позже; пока их нет, главная перенаправит на `/login?missing=supabase` с текстом-подсказкой.
+
+### Ошибка Vercel `MIDDLEWARE_INVOCATION_FAILED`
 
 Частая причина — устаревший паттерн с `request.cookies.set` в middleware (в Edge это падает). В репозитории используется исправленный вариант: только `NextResponse.cookies.set`.
 

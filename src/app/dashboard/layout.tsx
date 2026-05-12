@@ -2,12 +2,18 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { SignOutButton } from "@/components/SignOutButton";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+
+export const dynamic = "force-dynamic";
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  if (!isSupabaseConfigured()) {
+    redirect("/login?missing=supabase");
+  }
   const supabase = await createClient();
   const {
     data: { user },

@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
+
+  if (!isSupabaseConfigured()) {
+    return NextResponse.redirect(`${origin}/login?missing=supabase`);
+  }
+
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/dashboard";
 
