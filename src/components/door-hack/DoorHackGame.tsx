@@ -23,6 +23,15 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+/** Порядок портов: перестановка тех же цветов, но нигде порт ≠ провод на одной паре (нет «красный в красный»). */
+function shuffledDerangementPorts(wires: Letter[]): Letter[] {
+  for (let n = 0; n < 48; n++) {
+    const p = shuffle([...LETTERS]);
+    if (p.every((port, i) => port !== wires[i])) return p;
+  }
+  return wires.map((_, i) => wires[(i + 1) % wires.length]!);
+}
+
 const KEY_LENGTH = 6;
 
 /** Слова кода (ровно KEY_LENGTH латинских букв A–Z). */
@@ -109,7 +118,7 @@ export function DoorHackGame() {
 
   const wirePuzzle = useMemo(() => {
     const wiresOrder = shuffle([...LETTERS]);
-    const portsOrder = shuffle([...LETTERS]);
+    const portsOrder = shuffledDerangementPorts(wiresOrder);
     const hints = wiresOrder.map((w, i) => ({ wire: w, port: portsOrder[i] }));
     const portSlots = wiresOrder.map((_, i) => ({
       portLetter: portsOrder[i],
