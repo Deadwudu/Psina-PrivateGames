@@ -1,7 +1,7 @@
 /**
  * Собирает PDF для печати: текст из public/decryption/*.pdf извлекается,
  * шифруется циклическим числовым ключом (сдвиг Цезаря отдельно для латиницы и кириллицы),
- * результат записывается в print/encrypted/*.encrypted.pdf
+ * результат — print/encrypted/*.encrypted-for-print.pdf (каталог в .gitignore, не для репозитория).
  *
  * Запуск: npm run encrypt:print-pdfs
  */

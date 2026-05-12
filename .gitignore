@@ -9,3 +9,6 @@ node_modules/
 .next/
 .env*.local
 .vercel
+
+# Зашифрованные PDF только для локальной печати (npm run encrypt:print-pdfs)
+print/encrypted/
