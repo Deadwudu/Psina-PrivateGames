@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 const items = [
+  { href: "/dashboard/venue-map", label: "Карта полигона", desc: "План этажей и статусы лестниц" },
   { href: "/dashboard/tasks", label: "Мои задачи", desc: "Назначенные задания" },
   { href: "/dashboard/rapport", label: "Рапорт по задаче", desc: "Задача, выполнение, комментарий" },
   { href: "/dashboard/door-hack", label: "Взлом двери", desc: "Фиксация результата" },
