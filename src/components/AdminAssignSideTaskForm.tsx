@@ -10,7 +10,12 @@ async function sideAssignAction(
   return (await adminAssignTaskToSide(formData)) ?? null;
 }
 
-export function AdminAssignSideTaskForm() {
+type Props = {
+  sideALabel: string;
+  sideBLabel: string;
+};
+
+export function AdminAssignSideTaskForm({ sideALabel, sideBLabel }: Props) {
   const [state, formAction, pending] = useActionState(sideAssignAction, null);
 
   return (
@@ -25,11 +30,11 @@ export function AdminAssignSideTaskForm() {
         <div className="flex flex-wrap gap-4">
           <label className="flex cursor-pointer items-center gap-2 text-sm">
             <input type="radio" name="target_side" value="side_a" required className="accent-[var(--accent)]" />
-            Сторона А
+            {sideALabel}
           </label>
           <label className="flex cursor-pointer items-center gap-2 text-sm">
             <input type="radio" name="target_side" value="side_b" className="accent-[var(--accent)]" />
-            Сторона Б
+            {sideBLabel}
           </label>
         </div>
       </div>

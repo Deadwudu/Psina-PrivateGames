@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
+import { getSideDisplayNames } from "@/lib/side-display-names";
 import { TaskReportForm, type TaskOption } from "@/components/TaskReportForm";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,8 @@ function reportComment(r: ReportEmbed): string {
 export default async function RapportPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  const sideNames = await getSideDisplayNames();
 
   const supabase = createServiceClient();
 
@@ -192,7 +195,7 @@ export default async function RapportPage() {
       {session.role !== "admin" && (session.role === "side_a" || session.role === "side_b") && (
         <section className="mt-12">
           <h2 className="mb-4 text-lg font-medium">
-            Рапорты своей стороны ({session.role === "side_a" ? "А" : "Б"})
+            Рапорты своей стороны ({session.role === "side_a" ? sideNames.sideA : sideNames.sideB})
           </h2>
           <p className="mb-4 text-sm text-[var(--muted)]">
             Видны только участники вашей стороны. Все рапорты, в том числе ваши.

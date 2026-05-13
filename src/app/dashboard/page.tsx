@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { DashboardNav } from "@/components/DashboardNav";
 import { getSession } from "@/lib/auth/session";
-
-const roleLabels: Record<string, string> = {
-  side_a: "Сторона А",
-  side_b: "Сторона Б",
-  admin: "Администратор",
-};
+import { getSideDisplayNames } from "@/lib/side-display-names";
 
 export default async function DashboardPage() {
   const session = await getSession();
   if (!session) return null;
+
+  const names = await getSideDisplayNames();
+  const roleLabels: Record<string, string> = {
+    side_a: names.sideA,
+    side_b: names.sideB,
+    admin: "Администратор",
+  };
 
   const roleLabel = roleLabels[session.role] ?? session.role;
 

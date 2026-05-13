@@ -1,6 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/service";
+import { getSideDisplayNames } from "@/lib/side-display-names";
 import { AdminAssignTaskForm } from "@/components/AdminAssignTaskForm";
 import { AdminAssignSideTaskForm } from "@/components/AdminAssignSideTaskForm";
+import { AdminSideNamesForm } from "@/components/AdminSideNamesForm";
 import { AdminReportRowForm } from "@/components/AdminReportRowForm";
 
 type GameUserRow = {
@@ -45,6 +47,7 @@ function displayReportBody(r: ReportAdminRow): string {
 
 export default async function AdminPage() {
   const supabase = createServiceClient();
+  const sideNames = await getSideDisplayNames();
 
   const [
     { data: reports },
@@ -73,8 +76,8 @@ export default async function AdminPage() {
   );
 
   const roleLabel: Record<string, string> = {
-    side_a: "Сторона А",
-    side_b: "Сторона Б",
+    side_a: sideNames.sideA,
+    side_b: sideNames.sideB,
     admin: "Админ",
   };
 
@@ -103,9 +106,11 @@ export default async function AdminPage() {
       <h1 className="mb-2 text-2xl font-semibold">Обзор мероприятия</h1>
       <p className="mb-8 text-[var(--muted)]">Рапорты, задачи участникам и результаты взломов.</p>
 
+      <AdminSideNamesForm initialSideA={sideNames.sideA} initialSideB={sideNames.sideB} />
+
       <AdminAssignTaskForm users={userOptions} />
 
-      <AdminAssignSideTaskForm />
+      <AdminAssignSideTaskForm sideALabel={sideNames.sideA} sideBLabel={sideNames.sideB} />
 
       <section className="mb-12">
         <h2 className="mb-4 text-lg font-medium">Выданные задачи</h2>

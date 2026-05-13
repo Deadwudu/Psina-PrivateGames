@@ -81,6 +81,46 @@ export async function adminAssignTaskToSide(formData: FormData): Promise<AdminTa
   revalidatePath("/dashboard/rapport");
 }
 
+export type AdminSideNamesResult = { error: string } | { ok: true };
+
+const SIDE_NAME_MAX = 80;
+
+/** Названия сторон в интерфейсе (роли side_a / side_b в БД не меняются). */
+export async function adminSetSideDisplayNames(formData: FormData): Promise<AdminSideNamesResult> {
+  const session = await getSession();
+  if (!session || session.role !== "admin") {
+    return { error: "Нет прав администратора" };
+  }
+
+  const sideA = (formData.get("side_a_name") as string)?.trim() ?? "";
+  const sideB = (formData.get("side_b_name") as string)?.trim() ?? "";
+
+  if (!sideA || !sideB) {
+    return { error: "Укажите оба названия" };
+  }
+  if (sideA.length > SIDE_NAME_MAX || sideB.length > SIDE_NAME_MAX) {
+    return { error: `Не длиннее ${SIDE_NAME_MAX} символов каждое` };
+  }
+
+  const supabase = createServiceClient();
+  const { error } = await supabase.from("app_settings").upsert(
+    [
+      { key: "side_a_display_name", value: sideA },
+      { key: "side_b_display_name", value: sideB },
+    ],
+    { onConflict: "key" }
+  );
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+  revalidatePath("/register");
+  revalidatePath("/dashboard/rapport");
+
+  return { ok: true };
+}
+
 export type AdminReportResult = { error: string };
 
 export async function adminUpdateTaskReport(formData: FormData): Promise<AdminReportResult | void> {
