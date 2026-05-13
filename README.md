@@ -21,9 +21,10 @@
 5. Затем `supabase/migrations/004_venue_map_stairs.sql` (исторически: фиксированные индикаторы; позже заменено).
 6. Затем `supabase/migrations/005_venue_map_three_floors.sql` (убрать неиспользуемый пояс b3, если применяли 004 целиком).
 7. Затем `supabase/migrations/006_venue_map_markers.sql` (динамические маркеры на карте: позиции в %, цвет; заменяет `venue_stair_states`).
-8. Затем `supabase/migrations/007_app_settings_side_names.sql` (исторически: ключи названий в `app_settings`; после шага 9 они удаляются).
+8. Затем `supabase/migrations/007_app_settings_side_names.sql` (исторически: ключи названий в `app_settings`; после миграции `008` они удаляются).
 9. Затем `supabase/migrations/008_game_sides_dynamic.sql` (таблица `game_sides`, у пользователей `is_admin` и `side_id` вместо enum `user_role`; перенос данных со старых ролей).
-10. **Settings → API** скопируйте **Project URL** и **service_role** secret (ключ не светите в браузере и не коммитьте).
+10. Затем `supabase/migrations/009_venue_map_images.sql` (несколько слоёв карты в `venue_map_images`, маркеры привязаны к слою; bucket Storage `venue-maps` и политика публичного чтения для загрузок).
+11. **Settings → API** скопируйте **Project URL** и **service_role** secret (ключ не светите в браузере и не коммитьте).
 
 После миграции **008** старые сессии (JWT с полем `role`) перестанут действовать — пользователям нужен повторный вход.
 
@@ -70,7 +71,8 @@ npm run dev
 | `user_tasks`   | Задачи участника                    |
 | `task_reports` | Рапорты (текст + ссылка на задачу) |
 | `hack_results` | Итоги взлома двери/сервера/дешифровки |
-| `venue_map_markers` | Индикаторы на карте полигона: позиция в %, размер, цвет (`gray` / `green` / `red`) |
+| `venue_map_images` | Слои карты: публичный URL (`public_url`), порядок (`sort_order`), опционально путь в Storage (`storage_path`) |
+| `venue_map_markers` | Индикаторы на карте: слой (`venue_map_image_id`), позиция в %, размер, цвет (`gray` / `green` / `red`) |
 | `app_settings` | Пары ключ–значение (при необходимости; названия сторон хранятся в `game_sides`) |
 
 RLS в миграции отключён: доступ к данным идёт только через приложение с **service_role** на сервере (аналог отдельного бэкенда).

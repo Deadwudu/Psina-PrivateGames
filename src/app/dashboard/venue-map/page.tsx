@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
-import { fetchVenueMarkers } from "@/app/dashboard/venue-map-actions";
+import { fetchVenueMapImages, fetchVenueMarkers } from "@/app/dashboard/venue-map-actions";
 import { VenueMapClient } from "@/components/venue-map/VenueMapClient";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export default async function VenueMapPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const markers = await fetchVenueMarkers();
+  const [images, markers] = await Promise.all([fetchVenueMapImages(), fetchVenueMarkers()]);
 
   return (
     <div>
@@ -19,9 +19,10 @@ export default async function VenueMapPage() {
       </Link>
       <h1 className="mb-2 text-2xl font-semibold">Карта полигона</h1>
       <p className="mb-6 text-sm text-[var(--muted)]">
-        План этажей: администратор расставляет индикаторы на карте; номер задаётся автоматически по порядку добавления.
+        Один или несколько планов (этажей): администратор загружает изображения и может менять их порядок перетаскиванием.
+        Индикаторы ставятся на выбранном слое кликом по карте.
       </p>
-      <VenueMapClient initialMarkers={markers} isAdmin={session.isAdmin} />
+      <VenueMapClient images={images} initialMarkers={markers} isAdmin={session.isAdmin} />
     </div>
   );
 }
