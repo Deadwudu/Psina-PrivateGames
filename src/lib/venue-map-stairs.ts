@@ -66,10 +66,10 @@ function buildStairs(): StairSpot[] {
     for (const s of spots) {
       let leftPct = s.leftPct;
       let topPct = s.topPct;
-      /* №1 — только b0-left: чуть правее и ниже */
+      /* №1 — только b0-left: у ниши лестницы (правее вертикали стены, ниже первого грубого попадания) */
       if (b === 0 && s.slot === "left") {
-        leftPct = 12;
-        topPct = bandTop + 16;
+        leftPct = 21;
+        topPct = bandTop + 23;
       }
       out.push({
         key: `b${b}-${s.slot}`,
