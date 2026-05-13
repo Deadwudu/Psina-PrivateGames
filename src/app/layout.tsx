@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Oswald } from "next/font/google";
 import "./globals.css";
+import { EmergencyMapSignal } from "@/components/EmergencyMapSignal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,7 @@ export default function RootLayout({
         <div className="ambient-backdrop" aria-hidden />
         <div className="ambient-grid" aria-hidden />
         {children}
+        <EmergencyMapSignal />
       </body>
     </html>
   );
