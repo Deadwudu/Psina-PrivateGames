@@ -121,6 +121,80 @@ export async function adminSetSideDisplayNames(formData: FormData): Promise<Admi
   return { ok: true };
 }
 
+export type AdminPurgeResult = { error: string } | { ok: true; cleared: string[] };
+
+const PURGE_CONFIRM_WORD = "УДАЛИТЬ";
+
+async function deleteAllRows(
+  supabase: ReturnType<typeof createServiceClient>,
+  table: string,
+  label: string
+): Promise<{ error: string } | null> {
+  const { error } = await supabase.from(table).delete().gte("created_at", "1970-01-01T00:00:00Z");
+  if (error) return { error: `${label}: ${error.message}` };
+  return null;
+}
+
+/** Удаление игровых данных после мероприятия (учётные записи и названия сторон не меняются). */
+export async function adminPurgeEventData(formData: FormData): Promise<AdminPurgeResult> {
+  const session = await getSession();
+  if (!session || session.role !== "admin") {
+    return { error: "Нет прав администратора" };
+  }
+
+  const typed = ((formData.get("purge_confirm") as string) ?? "").trim();
+  if (typed !== PURGE_CONFIRM_WORD) {
+    return { error: `Введите слово подтверждения: ${PURGE_CONFIRM_WORD}` };
+  }
+
+  const purgeReports = formData.get("purge_reports") === "on";
+  const purgeHacks = formData.get("purge_hacks") === "on";
+  const purgeTasks = formData.get("purge_tasks") === "on";
+  const purgeVenue = formData.get("purge_venue_markers") === "on";
+
+  if (!purgeReports && !purgeHacks && !purgeTasks && !purgeVenue) {
+    return { error: "Отметьте хотя бы один блок данных" };
+  }
+
+  const supabase = createServiceClient();
+  const cleared: string[] = [];
+
+  if (purgeTasks) {
+    const eRep = await deleteAllRows(supabase, "task_reports", "Рапорты");
+    if (eRep) return eRep;
+    const eUt = await deleteAllRows(supabase, "user_tasks", "Задачи");
+    if (eUt) return eUt;
+    cleared.push("Рапорты и выданные задачи");
+  } else if (purgeReports) {
+    const eRep = await deleteAllRows(supabase, "task_reports", "Рапорты");
+    if (eRep) return eRep;
+    cleared.push("Рапорты");
+  }
+
+  if (purgeHacks) {
+    const e = await deleteAllRows(supabase, "hack_results", "Взломы");
+    if (e) return e;
+    cleared.push("Взломы и дешифровка");
+  }
+
+  if (purgeVenue) {
+    const e = await deleteAllRows(supabase, "venue_map_markers", "Карта");
+    if (e) return e;
+    cleared.push("Маркеры карты полигона");
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/tasks");
+  revalidatePath("/dashboard/rapport");
+  revalidatePath("/dashboard/venue-map");
+  revalidatePath("/dashboard/door-hack");
+  revalidatePath("/dashboard/server-hack");
+  revalidatePath("/dashboard/decryption");
+
+  return { ok: true, cleared };
+}
+
 export type AdminReportResult = { error: string };
 
 export async function adminUpdateTaskReport(formData: FormData): Promise<AdminReportResult | void> {

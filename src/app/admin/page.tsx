@@ -3,6 +3,7 @@ import { getSideDisplayNames } from "@/lib/side-display-names";
 import { AdminAssignTaskForm } from "@/components/AdminAssignTaskForm";
 import { AdminAssignSideTaskForm } from "@/components/AdminAssignSideTaskForm";
 import { AdminSideNamesForm } from "@/components/AdminSideNamesForm";
+import { AdminPurgeEventForm } from "@/components/AdminPurgeEventForm";
 import { AdminReportRowForm } from "@/components/AdminReportRowForm";
 
 type GameUserRow = {
@@ -263,6 +264,8 @@ export default async function AdminPage() {
           </table>
         </div>
       </section>
+
+      <AdminPurgeEventForm />
     </div>
   );
 }
