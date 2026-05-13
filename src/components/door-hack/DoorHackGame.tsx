@@ -97,8 +97,19 @@ function buildStrip(targetLetter: string): StripCell[] {
   return out;
 }
 
-export function DoorHackGame() {
+export type DoorHackMarkerChoice = { id: string; displayNum: number };
+
+type DoorHackGameProps = {
+  markers: DoorHackMarkerChoice[];
+};
+
+export function DoorHackGame({ markers }: DoorHackGameProps) {
   const router = useRouter();
+  const sortedMarkers = useMemo(
+    () => [...markers].sort((a, b) => a.displayNum - b.displayNum),
+    [markers]
+  );
+  const [selectedMarkerId, setSelectedMarkerId] = useState("");
   const [coarsePointer, setCoarsePointer] = useState(false);
 
   useEffect(() => {
@@ -218,12 +229,14 @@ export function DoorHackGame() {
       const fd = new FormData();
       fd.set("success", "true");
       fd.set("notes", "Дверь взломана (мини-игра: провода + кодовый замок)");
+      if (selectedMarkerId) fd.set("venue_marker_id", selectedMarkerId);
       fd.set(
         "details_json",
         JSON.stringify({
           doorMinigame: true,
           key: targetKey,
           wireHints: wirePuzzle.hints.map((h) => `${h.wire}→${h.port}`).join(", "),
+          venueMarkerId: selectedMarkerId || undefined,
         })
       );
       const res = await submitHackResult("door", fd);
@@ -238,7 +251,7 @@ export function DoorHackGame() {
     return () => {
       cancelled = true;
     };
-  }, [phase, matrixDone, wirePuzzle.hints, targetKey]);
+  }, [phase, matrixDone, wirePuzzle.hints, targetKey, selectedMarkerId]);
 
   useEffect(() => {
     if (phase !== "victory") return;
@@ -264,7 +277,10 @@ export function DoorHackGame() {
     }
   }
 
+  const canOpenPanel = sortedMarkers.length > 0 && selectedMarkerId.length > 0;
+
   function openPanel() {
+    if (!canOpenPanel) return;
     setPanelSlide(true);
     setTimeout(() => setPhase("wires"), 650);
   }
@@ -280,21 +296,53 @@ export function DoorHackGame() {
       className="relative mx-auto max-w-3xl touch-manipulation select-none [-webkit-tap-highlight-color:transparent]"
     >
       {phase === "panel" && (
-        <button
-          type="button"
-          onClick={openPanel}
-          className="panel relative flex min-h-[min(280px,70dvh)] w-full flex-col items-center justify-center overflow-hidden text-center active:bg-white/[0.04]"
-        >
-          <p className="mb-2 text-sm text-[var(--muted)]">Панель доступа</p>
-          <p className="text-lg font-medium">Нажмите, чтобы снять крышку</p>
-          <div
-            className={`pointer-events-none absolute inset-0 z-10 flex items-center justify-center border-b-4 border-[var(--border)] bg-gradient-to-b from-zinc-700 to-zinc-900 transition-transform duration-[650ms] ease-in-out ${
-              panelSlide ? "translate-y-[110%]" : "translate-y-0"
+        <div className="panel relative flex min-h-[min(280px,70dvh)] w-full flex-col overflow-hidden">
+          <div className="shrink-0 border-b border-[var(--border)] bg-black/50 px-4 py-3">
+            <label htmlFor="door-venue-marker" className="mb-1.5 block text-xs text-[var(--muted)]">
+              Индикатор на карте полигона
+            </label>
+            {sortedMarkers.length === 0 ? (
+              <p className="text-sm text-amber-400/95">
+                На карте нет точек. Попросите администратора добавить их на странице «Карта полигона».
+              </p>
+            ) : (
+              <select
+                id="door-venue-marker"
+                value={selectedMarkerId}
+                onChange={(e) => setSelectedMarkerId(e.target.value)}
+                className="w-full max-w-sm rounded-lg border border-[var(--border)] bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+              >
+                <option value="">Выберите номер…</option>
+                {sortedMarkers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    №{m.displayNum}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={openPanel}
+            disabled={!canOpenPanel}
+            className={`relative flex min-h-[min(220px,55dvh)] flex-1 flex-col items-center justify-center overflow-hidden text-center ${
+              canOpenPanel ? "active:bg-white/[0.04]" : "cursor-not-allowed opacity-60"
             }`}
           >
-            <span className="text-sm tracking-[0.3em] text-zinc-400">LOCKED</span>
-          </div>
-        </button>
+            <div
+              className={`pointer-events-none absolute inset-0 z-10 flex items-center justify-center border-b-4 border-[var(--border)] bg-gradient-to-b from-zinc-700 to-zinc-900 transition-transform duration-[650ms] ease-in-out ${
+                panelSlide ? "translate-y-[110%]" : "translate-y-0"
+              }`}
+            >
+              <span className="text-sm tracking-[0.3em] text-zinc-400">LOCKED</span>
+            </div>
+            <p className="relative z-0 mb-2 mt-6 text-sm text-[var(--muted)]">Панель доступа</p>
+            <p className="relative z-0 px-3 text-lg font-medium">
+              {canOpenPanel ? "Нажмите, чтобы снять крышку" : "Сначала выберите номер индикатора выше"}
+            </p>
+          </button>
+        </div>
       )}
 
       {(phase === "wires" || phase === "matrix" || phase === "victory") && (
@@ -472,6 +520,13 @@ export function DoorHackGame() {
           {phase === "victory" && (
             <div className="panel border-emerald-600/40 bg-emerald-950/30 text-center">
               <p className="text-lg font-semibold text-emerald-300">Дверь взломана</p>
+              {selectedMarkerId ? (
+                <p className="mt-2 text-sm text-emerald-200/90">
+                  Индикатор №
+                  {sortedMarkers.find((m) => m.id === selectedMarkerId)?.displayNum ?? "—"} на карте полигона отмечен
+                  зелёным для всех.
+                </p>
+              ) : null}
               <p className="mt-2 text-sm text-[var(--muted)]">Возврат на главный экран…</p>
             </div>
           )}

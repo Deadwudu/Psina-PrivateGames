@@ -151,6 +151,9 @@ export async function submitHackResult(
     }
   }
 
+  const venueMarkerIdRaw = ((formData.get("venue_marker_id") as string) ?? "").trim();
+  if (venueMarkerIdRaw) details.venue_marker_id = venueMarkerIdRaw;
+
   const { error } = await supabase.from("hack_results").insert({
     user_id: session.userId,
     activity_type: activityType,
@@ -158,6 +161,23 @@ export async function submitHackResult(
     details,
   });
   if (error) return { error: error.message };
+
+  const uuidOk = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(venueMarkerIdRaw);
+  if (
+    activityType === "door" &&
+    success &&
+    venueMarkerIdRaw &&
+    uuidOk
+  ) {
+    const { error: markerErr } = await supabase
+      .from("venue_map_markers")
+      .update({ color: "green" })
+      .eq("id", venueMarkerIdRaw);
+    if (markerErr) {
+      console.error("submitHackResult venue marker update", markerErr.message);
+    }
+    revalidatePath("/dashboard/venue-map");
+  }
 
   const path =
     activityType === "door"
