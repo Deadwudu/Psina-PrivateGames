@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { IconMapPin } from "@/components/NavIcons";
 
 type Signal = "green" | "yellow" | "red";
 
@@ -49,10 +48,10 @@ export function EmergencyMapSignal() {
         type="button"
         onClick={show}
         title="Сигнал на 5 секунд (зелёный / жёлтый / красный)"
-        aria-label="Показать сигнал на карте на пять секунд"
+        aria-label="Показать цветной сигнал на пять секунд"
         className="fixed bottom-4 right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel)]/90 text-[var(--accent)] shadow-lg backdrop-blur-sm transition hover:border-[var(--accent-dim)] hover:bg-[var(--panel)] hover:text-[var(--text)]"
       >
-        <IconMapPin className="h-5 w-5" aria-hidden />
+        <SquareIcon className="h-5 w-5" />
       </button>
 
       {signal && (
@@ -67,5 +66,13 @@ export function EmergencyMapSignal() {
         </div>
       )}
     </>
+  );
+}
+
+function SquareIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+      <rect x="6" y="6" width="12" height="12" rx="1" strokeLinejoin="round" />
+    </svg>
   );
 }
