@@ -16,32 +16,45 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <div className="relative mb-10 overflow-hidden rounded-2xl border border-white/[0.07] bg-gradient-to-br from-amber-600/[0.09] via-transparent to-orange-900/[0.07] px-5 py-8 sm:px-8">
+      <div className="relative mb-10 overflow-hidden rounded-sm border-2 border-[#4f5844]/95 bg-gradient-to-br from-[#181f14]/98 via-[#12180f]/98 to-[#0d100b]/98 px-5 py-8 sm:px-8">
+        <span
+          className="pointer-events-none absolute left-3 top-3 h-5 w-5 border-l-2 border-t-2 border-[var(--accent-dim)]"
+          aria-hidden
+        />
+        <span
+          className="pointer-events-none absolute right-3 top-3 h-5 w-5 border-r-2 border-t-2 border-[var(--accent-dim)]"
+          aria-hidden
+        />
+        <span
+          className="pointer-events-none absolute bottom-3 left-3 h-5 w-5 border-b-2 border-l-2 border-[var(--accent-dim)]"
+          aria-hidden
+        />
+        <span
+          className="pointer-events-none absolute bottom-3 right-3 h-5 w-5 border-b-2 border-r-2 border-[var(--accent-dim)]"
+          aria-hidden
+        />
         <div
-          className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-amber-500/14 blur-3xl"
+          className="pointer-events-none absolute -right-12 top-0 h-48 w-48 rounded-full bg-[#3d4d2f]/25 blur-3xl"
           aria-hidden
         />
         <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-3">
-            <p className="font-mono text-[11px] uppercase tracking-[0.35em] text-amber-400/95">оперативный интерфейс</p>
-            <h1 className="max-w-xl bg-gradient-to-r from-white via-stone-100 to-amber-200/95 bg-clip-text text-3xl font-bold tracking-tight text-transparent sm:text-4xl">
+            <p className="mil-label text-[var(--accent-dim)]">тактический интерфейс · SECURE</p>
+            <h1 className="font-display max-w-xl text-3xl font-semibold uppercase tracking-wide text-[var(--text)] sm:text-4xl">
               Главный экран
             </h1>
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[var(--muted)]">
-              <span className="font-medium text-[var(--text)]">{session.username}</span>
+              <span className="font-mono text-sm font-medium text-[var(--text)]">{session.username}</span>
               <span aria-hidden className="text-[var(--muted)]">
                 ·
               </span>
-              <span className="inline-flex items-center rounded-full border border-white/10 bg-black/30 px-3 py-1 text-sm text-amber-100/95">
+              <span className="inline-flex items-center rounded-sm border border-[#5a6348] bg-black/35 px-2.5 py-1 font-mono text-xs uppercase tracking-wider text-[var(--accent)]">
                 {roleLabel}
               </span>
             </p>
           </div>
           {session.role === "admin" && (
-            <Link
-              href="/admin"
-              className="btn-primary shrink-0 px-5 py-3 text-sm shadow-amber-600/35"
-            >
+            <Link href="/admin" className="btn-primary shrink-0 px-5 py-3 text-sm normal-case">
               Панель администратора
             </Link>
           )}

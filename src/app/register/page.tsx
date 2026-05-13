@@ -31,10 +31,10 @@ export default function RegisterPage() {
         <div className="mb-4 flex justify-center">
           <BrandMark />
         </div>
-        <p className="font-mono text-[11px] uppercase tracking-[0.35em] text-[var(--muted)]">новый участник</p>
+        <p className="mil-label text-[var(--accent-dim)]">регистрация участника</p>
       </div>
       <div className="panel">
-        <h1 className="mb-1 text-xl font-semibold tracking-tight">Регистрация</h1>
+        <h1 className="font-display mb-1 text-xl font-semibold uppercase tracking-wide">Регистрация</h1>
         <p className="mb-6 text-sm text-[var(--muted)]">Выберите сторону мероприятия</p>
         {banner === "config" && (
           <div className="mb-4 rounded-lg border border-amber-600/50 bg-amber-950/40 px-3 py-2 text-sm text-amber-100">

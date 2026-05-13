@@ -37,31 +37,31 @@ const items: {
 
 export function DashboardNav() {
   return (
-    <nav className="grid gap-4 sm:grid-cols-2">
+    <nav className="grid gap-3 sm:grid-cols-2">
       {items.map((item) => {
         const Icon = item.Icon;
         return (
-        <Link
-          key={item.href}
-          href={item.href}
-          className="group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.06] to-transparent p-5 shadow-lg shadow-black/30 transition-all duration-300 hover:border-[var(--border-glow)] hover:shadow-[0_0_40px_-8px_rgba(245,158,11,0.22)]"
-        >
-          <span
-            className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-amber-500/12 blur-2xl transition-opacity group-hover:opacity-100"
-            aria-hidden
-          />
-          <div className="relative flex gap-4">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/30 text-amber-400/95 shadow-inner shadow-black/40 transition-colors group-hover:border-amber-400/40 group-hover:bg-amber-500/12 group-hover:text-amber-200">
-              <Icon className="h-5 w-5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="font-semibold text-[var(--text)] transition-colors group-hover:text-amber-50">
-                {item.label}
+          <Link
+            key={item.href}
+            href={item.href}
+            className="group relative overflow-hidden rounded-sm border-2 border-[#454e3c]/90 bg-gradient-to-br from-[#1a2118]/95 to-[#0f140d]/98 p-5 shadow-lg shadow-black/40 transition-all duration-300 hover:border-[var(--border-glow)] hover:shadow-[0_0_36px_-10px_rgba(138,154,98,0.35)]"
+          >
+            <span
+              className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[#3d4d2f]/20 blur-2xl transition-opacity group-hover:opacity-100"
+              aria-hidden
+            />
+            <div className="relative flex gap-4">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border-2 border-[#4f5844] bg-[#0f130d]/90 text-[var(--accent-dim)] shadow-inner shadow-black/50 transition-colors group-hover:border-[#6b7a52] group-hover:bg-[#1a2218] group-hover:text-[var(--accent)]">
+                <Icon className="h-5 w-5" />
               </span>
-              <p className="mt-1 text-sm leading-snug text-[var(--muted)]">{item.desc}</p>
-            </span>
-          </div>
-        </Link>
+              <span className="min-w-0 flex-1">
+                <span className="font-display font-semibold uppercase tracking-wide text-[var(--text)] transition-colors group-hover:text-[var(--accent)]">
+                  {item.label}
+                </span>
+                <p className="mt-1 text-sm leading-snug text-[var(--muted)]">{item.desc}</p>
+              </span>
+            </div>
+          </Link>
         );
       })}
     </nav>

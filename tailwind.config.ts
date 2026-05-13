@@ -7,6 +7,7 @@ export default {
       fontFamily: {
         sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-geist-mono)", "monospace"],
+        display: ["var(--font-oswald)", "var(--font-geist-sans)", "system-ui", "sans-serif"],
       },
     },
   },

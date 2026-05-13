@@ -28,10 +28,10 @@ export default function LoginPage() {
         <div className="mb-4 flex justify-center">
           <BrandMark />
         </div>
-        <p className="font-mono text-[11px] uppercase tracking-[0.35em] text-[var(--muted)]">доступ к мероприятию</p>
+        <p className="mil-label text-[var(--accent-dim)]">аутентификация · restricted</p>
       </div>
       <div className="panel">
-        <h1 className="mb-1 text-xl font-semibold tracking-tight">Вход</h1>
+        <h1 className="font-display mb-1 text-xl font-semibold uppercase tracking-wide">Вход</h1>
         <p className="mb-6 text-sm text-[var(--muted)]">Введите позывной и пароль</p>
         {banner === "config" && (
           <div className="mb-4 rounded-lg border border-amber-600/50 bg-amber-950/40 px-3 py-2 text-sm text-amber-100">

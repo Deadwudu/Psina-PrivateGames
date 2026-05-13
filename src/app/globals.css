@@ -2,22 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Тактический / «полевой» интерфейс: оливковый, углы, низкий контраст сетки */
 :root {
-  --bg-deep: #070605;
-  --bg: #0a0908;
-  --panel: rgba(22, 18, 16, 0.78);
-  --panel-solid: #161210;
-  --border: rgba(255, 255, 255, 0.09);
-  --border-glow: rgba(251, 191, 36, 0.28);
-  --text: #f4f0ea;
-  --muted: #a39e94;
-  --accent: #f59e0b;
-  --accent-dim: #d97706;
-  --accent-soft: rgba(245, 158, 11, 0.14);
+  --bg-deep: #0a0c08;
+  --bg: #0f120d;
+  --panel: rgba(20, 24, 16, 0.94);
+  --panel-solid: #141a12;
+  --border: rgba(95, 108, 72, 0.45);
+  --border-glow: rgba(172, 188, 130, 0.42);
+  --text: #e8ecdf;
+  --muted: #8f967f;
+  --accent: #c8d6a0;
+  --accent-dim: #8b9a62;
+  --accent-soft: rgba(180, 196, 138, 0.14);
 }
 
 ::selection {
-  background: rgba(245, 158, 11, 0.35);
+  background: rgba(156, 174, 112, 0.38);
   color: var(--text);
 }
 
@@ -26,7 +27,6 @@ body {
   background-color: var(--bg-deep);
 }
 
-/* Фон: градиенты + лёгкая сетка */
 .ambient-backdrop {
   pointer-events: none;
   position: fixed;
@@ -34,10 +34,10 @@ body {
   z-index: -1;
   background-color: var(--bg-deep);
   background-image:
-    radial-gradient(ellipse 95% 50% at 50% -15%, rgba(245, 158, 11, 0.13), transparent 55%),
-    radial-gradient(ellipse 48% 38% at 100% 18%, rgba(249, 115, 22, 0.09), transparent 52%),
-    radial-gradient(ellipse 42% 36% at 0% 72%, rgba(185, 28, 28, 0.05), transparent 55%),
-    linear-gradient(180deg, var(--bg-deep) 0%, var(--bg) 55%, var(--bg-deep) 100%);
+    radial-gradient(ellipse 90% 45% at 50% -12%, rgba(74, 92, 52, 0.28), transparent 52%),
+    radial-gradient(ellipse 55% 42% at 100% 30%, rgba(45, 52, 34, 0.65), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 0% 75%, rgba(38, 46, 28, 0.55), transparent 55%),
+    linear-gradient(180deg, #080a06 0%, var(--bg) 45%, #070906 100%);
 }
 
 .ambient-grid {
@@ -45,39 +45,43 @@ body {
   position: fixed;
   inset: 0;
   z-index: -1;
-  opacity: 0.38;
+  opacity: 0.33;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.032) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.032) 1px, transparent 1px);
-  background-size: 44px 44px;
-  mask-image: radial-gradient(ellipse 70% 55% at 50% 35%, black 12%, transparent 72%);
+    linear-gradient(rgba(110, 124, 88, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(110, 124, 88, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 72% 58% at 50% 38%, black 10%, transparent 74%);
 }
 
 @layer utilities {
+  .mil-label {
+    @apply font-mono text-[10px] uppercase tracking-[0.32em] text-[var(--muted)];
+  }
+
   .panel {
-    @apply rounded-2xl border border-white/[0.08] bg-[var(--panel)] p-6 shadow-2xl shadow-black/50 backdrop-blur-xl;
+    @apply rounded-sm border-2 border-[#4b5542]/95 bg-[var(--panel)] p-6 shadow-xl shadow-black/70 backdrop-blur-md;
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.04) inset,
-      0 28px 56px -16px rgba(0, 0, 0, 0.65);
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 24px 48px -12px rgba(0, 0, 0, 0.75);
   }
 
   .btn {
-    @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200;
+    @apply inline-flex items-center justify-center rounded-sm px-4 py-2.5 text-sm font-semibold tracking-wide transition-all duration-200;
   }
 
   .btn-primary {
-    @apply btn bg-gradient-to-r from-amber-400 via-amber-500 to-orange-600 font-semibold text-stone-950 shadow-lg shadow-amber-600/30 hover:from-amber-300 hover:via-amber-400 hover:to-orange-500 hover:shadow-amber-500/35 active:scale-[0.98];
+    @apply btn border border-[#5f6d48] bg-gradient-to-b from-[#556b3f] via-[#485c36] to-[#354428] text-[#f2f5e8] shadow-lg shadow-black/50 hover:from-[#5f7548] hover:via-[#4f633c] hover:to-[#3d4d30] hover:shadow-black/60 active:scale-[0.98];
   }
 
   .btn-secondary {
-    @apply btn border border-white/10 bg-white/[0.04] text-[var(--text)] backdrop-blur-sm hover:border-[var(--border-glow)] hover:bg-[var(--accent-soft)] hover:text-amber-50 active:scale-[0.98];
+    @apply btn border-2 border-[#4b5542]/90 bg-[#141812]/90 text-[var(--text)] hover:border-[var(--border-glow)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] active:scale-[0.98];
   }
 
   .input {
-    @apply w-full rounded-xl border border-white/10 bg-black/35 px-3 py-2.5 text-[var(--text)] outline-none ring-0 transition-[border-color,box-shadow] placeholder:text-slate-500 focus:border-amber-500/55 focus:shadow-[0_0_0_3px_var(--accent-soft)];
+    @apply w-full rounded-sm border-2 border-[#3d4536]/90 bg-[#0c0f08]/90 px-3 py-2.5 font-mono text-sm text-[var(--text)] outline-none ring-0 transition-[border-color,box-shadow] placeholder:text-[#5c6652] focus:border-[#7a8b5c] focus:shadow-[0_0_0_2px_var(--accent-soft)];
   }
 
   .site-header {
-    @apply sticky top-0 z-40 border-b border-white/[0.06] bg-neutral-950/75 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-xl;
+    @apply sticky top-0 z-40 border-b-2 border-[#3d4534]/95 bg-zinc-950/90 shadow-[0_6px_28px_rgba(0,0,0,0.55)] backdrop-blur-md;
   }
 }

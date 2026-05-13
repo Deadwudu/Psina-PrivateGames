@@ -22,7 +22,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <div className="flex flex-wrap items-center gap-6">
             <Link href="/admin" className="flex items-center gap-3">
               <BrandMark size="sm" showText={false} />
-              <span className="font-semibold tracking-tight text-[var(--text)]">Администратор</span>
+              <span className="font-display text-base font-semibold uppercase tracking-wide text-[var(--text)]">
+                Администратор
+              </span>
             </Link>
             <Link
               href="/dashboard"

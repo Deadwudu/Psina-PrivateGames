@@ -26,8 +26,8 @@ export default async function DashboardLayout({
             <BrandMark size="sm" />
           </Link>
           <div className="flex items-center gap-3">
-            <span className="hidden font-mono text-[10px] uppercase tracking-[0.25em] text-[var(--muted)] sm:inline">
-              канал связи
+            <span className="mil-label hidden text-[var(--accent-dim)] sm:inline">
+              защищённый канал
             </span>
             <SignOutButton />
           </div>
