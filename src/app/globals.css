@@ -3,34 +3,81 @@
 @tailwind utilities;
 
 :root {
-  --bg: #0c0e12;
-  --panel: #141820;
-  --border: #2a3142;
-  --text: #e8eaef;
-  --muted: #8b93a7;
-  --accent: #3d8bfd;
-  --accent-dim: #2563c9;
+  --bg-deep: #050608;
+  --bg: #080a0f;
+  --panel: rgba(14, 18, 28, 0.78);
+  --panel-solid: #0e121c;
+  --border: rgba(255, 255, 255, 0.09);
+  --border-glow: rgba(45, 212, 191, 0.22);
+  --text: #f0f4f8;
+  --muted: #8b97ab;
+  --accent: #2dd4bf;
+  --accent-dim: #14b8a6;
+  --accent-soft: rgba(45, 212, 191, 0.12);
+}
+
+::selection {
+  background: rgba(45, 212, 191, 0.35);
+  color: var(--text);
 }
 
 body {
   color: var(--text);
-  background: var(--bg);
+  background-color: var(--bg-deep);
+}
+
+/* Фон: градиенты + лёгкая сетка (без картинок) */
+.ambient-backdrop {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--bg-deep);
+  background-image:
+    radial-gradient(ellipse 95% 50% at 50% -15%, rgba(45, 212, 191, 0.14), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 100% 20%, rgba(56, 189, 248, 0.08), transparent 50%),
+    radial-gradient(ellipse 45% 35% at 0% 70%, rgba(99, 102, 241, 0.06), transparent 55%),
+    linear-gradient(180deg, var(--bg-deep) 0%, var(--bg) 55%, var(--bg-deep) 100%);
+}
+
+.ambient-grid {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.4;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 70% 55% at 50% 35%, black 12%, transparent 72%);
 }
 
 @layer utilities {
   .panel {
-    @apply rounded-xl border border-[var(--border)] bg-[var(--panel)] p-6 shadow-lg;
+    @apply rounded-2xl border border-white/[0.08] bg-[var(--panel)] p-6 shadow-2xl shadow-black/50 backdrop-blur-xl;
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+      0 28px 56px -16px rgba(0, 0, 0, 0.65);
   }
+
   .btn {
-    @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors;
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200;
   }
+
   .btn-primary {
-    @apply btn bg-[var(--accent)] text-white hover:bg-[var(--accent-dim)];
+    @apply btn bg-gradient-to-r from-teal-400 via-teal-500 to-cyan-600 font-semibold text-slate-950 shadow-lg shadow-teal-500/25 hover:from-teal-300 hover:via-teal-400 hover:to-cyan-500 hover:shadow-teal-400/35 active:scale-[0.98];
   }
+
   .btn-secondary {
-    @apply btn border border-[var(--border)] bg-transparent text-[var(--text)] hover:bg-white/5;
+    @apply btn border border-white/10 bg-white/[0.04] text-[var(--text)] backdrop-blur-sm hover:border-[var(--border-glow)] hover:bg-[var(--accent-soft)] hover:text-teal-50 active:scale-[0.98];
   }
+
   .input {
-    @apply w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-[var(--text)] outline-none focus:border-[var(--accent)];
+    @apply w-full rounded-xl border border-white/10 bg-black/35 px-3 py-2.5 text-[var(--text)] outline-none ring-0 transition-[border-color,box-shadow] placeholder:text-slate-500 focus:border-teal-500/45 focus:shadow-[0_0_0_3px_var(--accent-soft)];
+  }
+
+  .site-header {
+    @apply sticky top-0 z-40 border-b border-white/[0.06] bg-slate-950/75 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-xl;
   }
 }

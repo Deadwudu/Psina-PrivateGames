@@ -24,7 +24,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru">
-      <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen font-sans antialiased`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen font-sans antialiased`}
+      >
+        <div className="ambient-backdrop" aria-hidden />
+        <div className="ambient-grid" aria-hidden />
         {children}
       </body>
     </html>

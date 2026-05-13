@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BrandMark } from "@/components/BrandMark";
 import { SignOutButton } from "@/components/SignOutButton";
 import { isAppConfigured } from "@/lib/supabase/config";
 import { getSession } from "@/lib/auth/session";
@@ -19,15 +20,20 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-[var(--border)] bg-[var(--panel)]">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
-          <Link href="/dashboard" className="font-semibold tracking-tight">
-            Private Games
+      <header className="site-header">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3.5">
+          <Link href="/dashboard" className="flex items-center gap-3 transition-opacity hover:opacity-90">
+            <BrandMark size="sm" />
           </Link>
-          <SignOutButton />
+          <div className="flex items-center gap-3">
+            <span className="hidden font-mono text-[10px] uppercase tracking-[0.25em] text-[var(--muted)] sm:inline">
+              канал связи
+            </span>
+            <SignOutButton />
+          </div>
         </div>
       </header>
-      <main className="mx-auto max-w-4xl px-4 py-8">{children}</main>
+      <main className="mx-auto max-w-4xl px-4 py-10">{children}</main>
     </div>
   );
 }
