@@ -69,7 +69,7 @@ function buildStairs(): StairSpot[] {
       /* №1 — только b0-left: у ниши лестницы (правее вертикали стены, ниже первого грубого попадания) */
       if (b === 0 && s.slot === "left") {
         leftPct = 21;
-        topPct = bandTop + 23;
+        topPct = bandTop + 19;
       }
       out.push({
         key: `b${b}-${s.slot}`,
