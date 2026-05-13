@@ -18,9 +18,10 @@
 2. **SQL Editor** → вставьте содержимое `supabase/migrations/001_initial.sql` → **Run** (один раз на чистую БД).
 3. Затем выполните `supabase/migrations/002_task_reports_rapport.sql` (колонки рапорта: задача, «выполнено», комментарий).
 4. Затем `supabase/migrations/003_shared_side_task_rapports.sql` (общие задачи стороне: `assignment_batch_id`, один рапорт на выдачу до успеха).
-5. Затем `supabase/migrations/004_venue_map_stairs.sql` (индикаторы лестниц на карте полигона).
+5. Затем `supabase/migrations/004_venue_map_stairs.sql` (исторически: фиксированные индикаторы; позже заменено).
 6. Затем `supabase/migrations/005_venue_map_three_floors.sql` (убрать неиспользуемый пояс b3, если применяли 004 целиком).
-7. **Settings → API** скопируйте **Project URL** и **service_role** secret (ключ не светите в браузере и не коммитьте).
+7. Затем `supabase/migrations/006_venue_map_markers.sql` (динамические маркеры на карте: позиции в %, цвет; заменяет `venue_stair_states`).
+8. **Settings → API** скопируйте **Project URL** и **service_role** secret (ключ не светите в браузере и не коммитьте).
 
 **Администратор** (после регистрации участника с нужным позывным):
 
@@ -64,6 +65,6 @@ npm run dev
 | `user_tasks`   | Задачи участника                    |
 | `task_reports` | Рапорты (текст + ссылка на задачу) |
 | `hack_results` | Итоги взлома двери/сервера/дешифровки |
-| `venue_stair_states` | Цвета индикаторов лестниц на карте (`gray` / `green` / `red`) |
+| `venue_map_markers` | Индикаторы на карте полигона: позиция в %, размер, цвет (`gray` / `green` / `red`) |
 
 RLS в миграции отключён: доступ к данным идёт только через приложение с **service_role** на сервере (аналог отдельного бэкенда).

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
-import { fetchVenueMapStates } from "@/app/dashboard/venue-map-actions";
+import { fetchVenueMarkers } from "@/app/dashboard/venue-map-actions";
 import { VenueMapClient } from "@/components/venue-map/VenueMapClient";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export default async function VenueMapPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const states = await fetchVenueMapStates();
+  const markers = await fetchVenueMarkers();
 
   return (
     <div>
@@ -19,9 +19,9 @@ export default async function VenueMapPage() {
       </Link>
       <h1 className="mb-2 text-2xl font-semibold">Карта полигона</h1>
       <p className="mb-6 text-sm text-[var(--muted)]">
-        План этажей с индикаторами на лестничных узлах (12 позиций: три этажа × четыре лестницы, каждая с уникальным номером и ключом в базе).
+        План этажей: администратор расставляет индикаторы на карте; номер задаётся автоматически по порядку добавления.
       </p>
-      <VenueMapClient initialStates={states} isAdmin={session.role === "admin"} />
+      <VenueMapClient initialMarkers={markers} isAdmin={session.role === "admin"} />
     </div>
   );
 }
