@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { submitHackResult } from "@/app/dashboard/actions";
+import type { MarkerColor } from "@/lib/venue-map-markers";
 
 const COLOR: Record<string, { name: string; bg: string; border: string; text: string }> = {
   З: { name: "Зелёный", bg: "bg-emerald-500", border: "border-emerald-400", text: "text-emerald-950" },
@@ -97,7 +98,9 @@ function buildStrip(targetLetter: string): StripCell[] {
   return out;
 }
 
-export type DoorHackMarkerChoice = { id: string; displayNum: number };
+export type DoorHackMarkerChoice = { id: string; displayNum: number; color: MarkerColor };
+
+type DoorGoal = "open" | "close";
 
 type DoorHackGameProps = {
   markers: DoorHackMarkerChoice[];
@@ -109,6 +112,15 @@ export function DoorHackGame({ markers }: DoorHackGameProps) {
     () => [...markers].sort((a, b) => a.displayNum - b.displayNum),
     [markers]
   );
+  const [doorGoal, setDoorGoal] = useState<DoorGoal | null>(null);
+  const filteredMarkers = useMemo(() => {
+    if (!doorGoal) return [];
+    if (doorGoal === "close") {
+      return sortedMarkers.filter((m) => m.color === "green" || m.color === "gray");
+    }
+    return sortedMarkers.filter((m) => m.color === "red" || m.color === "gray");
+  }, [sortedMarkers, doorGoal]);
+
   const [selectedMarkerId, setSelectedMarkerId] = useState("");
   const [coarsePointer, setCoarsePointer] = useState(false);
 
@@ -226,14 +238,22 @@ export function DoorHackGame({ markers }: DoorHackGameProps) {
     hackSent.current = true;
     let cancelled = false;
     (async () => {
+      if (!doorGoal) return;
       const fd = new FormData();
       fd.set("success", "true");
-      fd.set("notes", "Дверь взломана (мини-игра: провода + кодовый замок)");
+      fd.set(
+        "notes",
+        doorGoal === "close"
+          ? "Дверь закрыта (мини-игра: провода + кодовый замок)"
+          : "Дверь открыта (мини-игра: провода + кодовый замок)"
+      );
+      fd.set("door_goal", doorGoal);
       if (selectedMarkerId) fd.set("venue_marker_id", selectedMarkerId);
       fd.set(
         "details_json",
         JSON.stringify({
           doorMinigame: true,
+          doorGoal,
           key: targetKey,
           wireHints: wirePuzzle.hints.map((h) => `${h.wire}→${h.port}`).join(", "),
           venueMarkerId: selectedMarkerId || undefined,
@@ -251,7 +271,7 @@ export function DoorHackGame({ markers }: DoorHackGameProps) {
     return () => {
       cancelled = true;
     };
-  }, [phase, matrixDone, wirePuzzle.hints, targetKey, selectedMarkerId]);
+  }, [phase, matrixDone, wirePuzzle.hints, targetKey, selectedMarkerId, doorGoal]);
 
   useEffect(() => {
     if (phase !== "victory") return;
@@ -277,7 +297,12 @@ export function DoorHackGame({ markers }: DoorHackGameProps) {
     }
   }
 
-  const canOpenPanel = sortedMarkers.length > 0 && selectedMarkerId.length > 0;
+  const canOpenPanel = doorGoal !== null && filteredMarkers.length > 0 && selectedMarkerId.length > 0;
+
+  function pickDoorGoal(g: DoorGoal) {
+    setDoorGoal(g);
+    setSelectedMarkerId("");
+  }
 
   function openPanel() {
     if (!canOpenPanel) return;
@@ -297,29 +322,74 @@ export function DoorHackGame({ markers }: DoorHackGameProps) {
     >
       {phase === "panel" && (
         <div className="panel relative flex min-h-[min(280px,70dvh)] w-full flex-col overflow-hidden">
-          <div className="shrink-0 border-b border-[var(--border)] bg-black/50 px-4 py-3">
-            <label htmlFor="door-venue-marker" className="mb-1.5 block text-xs text-[var(--muted)]">
-              Индикатор на карте полигона
-            </label>
-            {sortedMarkers.length === 0 ? (
-              <p className="text-sm text-amber-400/95">
-                На карте нет точек. Попросите администратора добавить их на странице «Карта полигона».
+          <div className="shrink-0 space-y-4 border-b border-[var(--border)] bg-black/50 px-4 py-3">
+            <div>
+              <span className="mb-2 block text-xs text-[var(--muted)]">Действие</span>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => pickDoorGoal("open")}
+                  className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                    doorGoal === "open"
+                      ? "border-emerald-500/70 bg-emerald-950/50 text-emerald-200"
+                      : "border-[var(--border)] bg-zinc-950 text-zinc-200 hover:border-emerald-600/40"
+                  }`}
+                >
+                  Открыть
+                </button>
+                <button
+                  type="button"
+                  onClick={() => pickDoorGoal("close")}
+                  className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                    doorGoal === "close"
+                      ? "border-red-500/70 bg-red-950/40 text-red-200"
+                      : "border-[var(--border)] bg-zinc-950 text-zinc-200 hover:border-red-600/40"
+                  }`}
+                >
+                  Закрыть
+                </button>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">
+                {doorGoal === null && "Сначала выберите режим — в списке ниже появятся нужные индикаторы (все игроки видят одну и ту же карту)."}
+                {doorGoal === "open" &&
+                  "Список: закрытые (красные на карте) и серые. Успех — индикатор станет зелёным (открыто) для всех."}
+                {doorGoal === "close" &&
+                  "Список: открытые (зелёные на карте) и серые. Успех — индикатор станет красным (закрыто) для всех."}
               </p>
-            ) : (
-              <select
-                id="door-venue-marker"
-                value={selectedMarkerId}
-                onChange={(e) => setSelectedMarkerId(e.target.value)}
-                className="w-full max-w-sm rounded-lg border border-[var(--border)] bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
-              >
-                <option value="">Выберите номер…</option>
-                {sortedMarkers.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    №{m.displayNum}
-                  </option>
-                ))}
-              </select>
-            )}
+            </div>
+
+            <div>
+              <label htmlFor="door-venue-marker" className="mb-1.5 block text-xs text-[var(--muted)]">
+                Индикатор на карте
+              </label>
+              {sortedMarkers.length === 0 ? (
+                <p className="text-sm text-amber-400/95">
+                  На карте нет точек. Попросите администратора добавить их на странице «Карта полигона».
+                </p>
+              ) : !doorGoal ? (
+                <p className="text-sm text-[var(--muted)]">Выберите «Открыть» или «Закрыть», чтобы открыть список.</p>
+              ) : filteredMarkers.length === 0 ? (
+                <p className="text-sm text-amber-400/95">
+                  В этом режиме нет подходящих индикаторов. Смените действие или попросите ведущего обновить статусы на
+                  карте.
+                </p>
+              ) : (
+                <select
+                  id="door-venue-marker"
+                  value={selectedMarkerId}
+                  onChange={(e) => setSelectedMarkerId(e.target.value)}
+                  className="w-full max-w-sm rounded-lg border border-[var(--border)] bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+                >
+                  <option value="">Выберите номер…</option>
+                  {filteredMarkers.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      №{m.displayNum}
+                      {m.color === "green" ? " · открыта" : m.color === "red" ? " · закрыта" : " · серая"}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
           </div>
 
           <button
@@ -339,7 +409,15 @@ export function DoorHackGame({ markers }: DoorHackGameProps) {
             </div>
             <p className="relative z-0 mb-2 mt-6 text-sm text-[var(--muted)]">Панель доступа</p>
             <p className="relative z-0 px-3 text-lg font-medium">
-              {canOpenPanel ? "Нажмите, чтобы снять крышку" : "Сначала выберите номер индикатора выше"}
+              {canOpenPanel
+                ? "Нажмите, чтобы снять крышку"
+                : sortedMarkers.length === 0
+                  ? "Нет индикаторов на карте"
+                  : !doorGoal
+                    ? "Сначала выберите: открыть или закрыть дверь"
+                    : filteredMarkers.length === 0
+                      ? "Нет индикаторов для этого действия"
+                      : "Выберите номер индикатора выше"}
             </p>
           </button>
         </div>
@@ -519,12 +597,14 @@ export function DoorHackGame({ markers }: DoorHackGameProps) {
 
           {phase === "victory" && (
             <div className="panel border-emerald-600/40 bg-emerald-950/30 text-center">
-              <p className="text-lg font-semibold text-emerald-300">Дверь взломана</p>
+              <p className="text-lg font-semibold text-emerald-300">
+                {doorGoal === "close" ? "Дверь закрыта" : "Дверь открыта"}
+              </p>
               {selectedMarkerId ? (
                 <p className="mt-2 text-sm text-emerald-200/90">
                   Индикатор №
-                  {sortedMarkers.find((m) => m.id === selectedMarkerId)?.displayNum ?? "—"} на карте полигона отмечен
-                  зелёным для всех.
+                  {sortedMarkers.find((m) => m.id === selectedMarkerId)?.displayNum ?? "—"} на карте:{" "}
+                  {doorGoal === "close" ? "красный (закрыто)" : "зелёный (открыто)"} для всех.
                 </p>
               ) : null}
               <p className="mt-2 text-sm text-[var(--muted)]">Возврат на главный экран…</p>

@@ -11,7 +11,7 @@ export default async function DoorHackPage() {
   if (!session) redirect("/login");
 
   const venueMarkers = await fetchVenueMarkers();
-  const markers = venueMarkers.map((m) => ({ id: m.id, displayNum: m.displayNum }));
+  const markers = venueMarkers.map((m) => ({ id: m.id, displayNum: m.displayNum, color: m.color }));
 
   return (
     <div>

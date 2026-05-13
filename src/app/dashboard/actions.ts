@@ -154,6 +154,10 @@ export async function submitHackResult(
   const venueMarkerIdRaw = ((formData.get("venue_marker_id") as string) ?? "").trim();
   if (venueMarkerIdRaw) details.venue_marker_id = venueMarkerIdRaw;
 
+  const doorGoalRaw = ((formData.get("door_goal") as string) ?? "").trim().toLowerCase();
+  const doorGoal = doorGoalRaw === "close" || doorGoalRaw === "open" ? doorGoalRaw : null;
+  if (doorGoal) details.door_goal = doorGoal;
+
   const { error } = await supabase.from("hack_results").insert({
     user_id: session.userId,
     activity_type: activityType,
@@ -163,15 +167,11 @@ export async function submitHackResult(
   if (error) return { error: error.message };
 
   const uuidOk = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(venueMarkerIdRaw);
-  if (
-    activityType === "door" &&
-    success &&
-    venueMarkerIdRaw &&
-    uuidOk
-  ) {
+  if (activityType === "door" && success && venueMarkerIdRaw && uuidOk) {
+    const nextColor = doorGoal === "close" ? "red" : "green";
     const { error: markerErr } = await supabase
       .from("venue_map_markers")
-      .update({ color: "green" })
+      .update({ color: nextColor })
       .eq("id", venueMarkerIdRaw);
     if (markerErr) {
       console.error("submitHackResult venue marker update", markerErr.message);
