@@ -48,10 +48,10 @@ export function VenueMapClient({ initialStates, isAdmin }: Props) {
     <div className="space-y-4">
       <div className="relative mx-auto w-full max-w-5xl overflow-hidden rounded-xl border border-[var(--border)] bg-black/40">
         <Image
-          src="/venue/building-floor-plans-evacuation.png"
-          alt="План этажей полигона"
+          src="/venue/building-floor-plans-marked.png"
+          alt="План этажей полигона (разметка лестниц)"
           width={1200}
-          height={2400}
+          height={2200}
           className="h-auto w-full select-none"
           priority
           sizes="(max-width: 1024px) 100vw, 1024px"
@@ -66,29 +66,38 @@ export function VenueMapClient({ initialStates, isAdmin }: Props) {
             width: `${s.sizePct}%`,
             aspectRatio: "1" as const,
           };
+          const numLabel = `${s.displayNum}`;
           if (isAdmin) {
             return (
               <button
                 key={s.key}
                 type="button"
-                title={s.label}
-                aria-label={s.label}
+                title={`${s.label} (#${numLabel})`}
+                aria-label={`${s.label}, индикатор ${numLabel}`}
                 disabled={pendingKey === s.key}
                 onClick={() => onStairClick(s.key, c)}
                 className={`${common} cursor-pointer hover:scale-110 hover:brightness-110 active:scale-95 disabled:cursor-wait`}
                 style={style}
-              />
+              >
+                <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[clamp(8px,1.6vw,13px)] font-bold leading-none text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                  {numLabel}
+                </span>
+              </button>
             );
           }
           return (
             <span
               key={s.key}
-              title={s.label}
+              title={`${s.label} (#${numLabel})`}
               className={`${common} pointer-events-none`}
               style={style}
               role="img"
-              aria-label={s.label}
-            />
+              aria-label={`${s.label}, индикатор ${numLabel}`}
+            >
+              <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[clamp(8px,1.6vw,13px)] font-bold leading-none text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                {numLabel}
+              </span>
+            </span>
           );
         })}
       </div>

@@ -19,8 +19,7 @@ export default async function VenueMapPage() {
       </Link>
       <h1 className="mb-2 text-2xl font-semibold">Карта полигона</h1>
       <p className="mb-6 text-sm text-[var(--muted)]">
-        План этажей с индикаторами на лестничных узлах. Состояние одно для всех участников; менять цвет могут только
-        администраторы.
+        План этажей с индикаторами на лестничных узлах (12 позиций: три этажа × четыре лестницы, каждая с уникальным номером и ключом в базе).
       </p>
       <VenueMapClient initialStates={states} isAdmin={session.role === "admin"} />
     </div>
