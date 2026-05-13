@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
-import { getSideDisplayNames } from "@/lib/side-display-names";
+import { listGameSides } from "@/lib/game-sides";
 import { TaskReportForm, type TaskOption } from "@/components/TaskReportForm";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,7 @@ type ReportEmbed = {
   content: string | null;
   task_reference: string | null;
   created_at: string;
-  game_users: { username: string; role?: string } | { username: string; role?: string }[] | null;
+  game_users: { username: string } | { username: string }[] | null;
   user_tasks: { title: string } | { title: string }[] | null;
 };
 
@@ -36,7 +36,11 @@ export default async function RapportPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const sideNames = await getSideDisplayNames();
+  const sides = await listGameSides();
+  const mySideName =
+    !session.isAdmin && session.sideId
+      ? sides.find((s) => s.id === session.sideId)?.display_name ?? "Сторона"
+      : "";
 
   const supabase = createServiceClient();
 
@@ -129,14 +133,14 @@ export default async function RapportPage() {
   );
 
   let sideReports: ReportEmbed[] = [];
-  if (session.role === "side_a" || session.role === "side_b") {
-    const { data: mates } = await supabase.from("game_users").select("id").eq("role", session.role);
+  if (!session.isAdmin && session.sideId) {
+    const { data: mates } = await supabase.from("game_users").select("id").eq("side_id", session.sideId);
     const ids = mates?.map((m) => m.id) ?? [];
     if (ids.length > 0) {
       const { data: sideRaw } = await supabase
         .from("task_reports")
         .select(
-          "id, user_id, user_task_id, assignment_batch_id, task_completed, rapport_comment, content, created_at, game_users(username, role), user_tasks(title)"
+          "id, user_id, user_task_id, assignment_batch_id, task_completed, rapport_comment, content, created_at, game_users(username), user_tasks(title)"
         )
         .in("user_id", ids)
         .order("created_at", { ascending: false })
@@ -192,11 +196,9 @@ export default async function RapportPage() {
         )}
       </section>
 
-      {session.role !== "admin" && (session.role === "side_a" || session.role === "side_b") && (
+      {!session.isAdmin && session.sideId && (
         <section className="mt-12">
-          <h2 className="mb-4 text-lg font-medium">
-            Рапорты своей стороны ({session.role === "side_a" ? sideNames.sideA : sideNames.sideB})
-          </h2>
+          <h2 className="mb-4 text-lg font-medium">Рапорты своей стороны ({mySideName})</h2>
           <p className="mb-4 text-sm text-[var(--muted)]">
             Видны только участники вашей стороны. Все рапорты, в том числе ваши.
           </p>

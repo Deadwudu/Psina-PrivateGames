@@ -1,20 +1,16 @@
 import Link from "next/link";
 import { DashboardNav } from "@/components/DashboardNav";
 import { getSession } from "@/lib/auth/session";
-import { getSideDisplayNames } from "@/lib/side-display-names";
+import { listGameSides } from "@/lib/game-sides";
 
 export default async function DashboardPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const names = await getSideDisplayNames();
-  const roleLabels: Record<string, string> = {
-    side_a: names.sideA,
-    side_b: names.sideB,
-    admin: "Администратор",
-  };
-
-  const roleLabel = roleLabels[session.role] ?? session.role;
+  const sides = await listGameSides();
+  const roleLabel = session.isAdmin
+    ? "Администратор"
+    : sides.find((s) => s.id === session.sideId)?.display_name ?? "Участник";
 
   return (
     <div>
@@ -55,7 +51,7 @@ export default async function DashboardPage() {
               </span>
             </p>
           </div>
-          {session.role === "admin" && (
+          {session.isAdmin && (
             <Link href="/admin" className="btn-primary shrink-0 px-5 py-3 text-sm normal-case">
               Панель администратора
             </Link>

@@ -21,7 +21,7 @@ export default async function VenueMapPage() {
       <p className="mb-6 text-sm text-[var(--muted)]">
         План этажей: администратор расставляет индикаторы на карте; номер задаётся автоматически по порядку добавления.
       </p>
-      <VenueMapClient initialMarkers={markers} isAdmin={session.role === "admin"} />
+      <VenueMapClient initialMarkers={markers} isAdmin={session.isAdmin} />
     </div>
   );
 }

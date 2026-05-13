@@ -7,6 +7,7 @@ import { SESSION_COOKIE } from "@/lib/auth/constants";
 import { signSessionToken } from "@/lib/auth/jwt";
 import { createServiceClient } from "@/lib/supabase/service";
 import { isAppConfigured } from "@/lib/supabase/config";
+import { isUuid } from "@/lib/uuid";
 
 const cookieOpts = {
   httpOnly: true,
@@ -28,7 +29,7 @@ export async function loginAction(formData: FormData): Promise<AuthActionResult 
   const supabase = createServiceClient();
   const { data: row, error } = await supabase
     .from("game_users")
-    .select("id, username, role, password_hash")
+    .select("id, username, password_hash, is_admin, side_id")
     .eq("username", username)
     .maybeSingle();
 
@@ -39,11 +40,17 @@ export async function loginAction(formData: FormData): Promise<AuthActionResult 
   const ok = await bcrypt.compare(password, row.password_hash as string);
   if (!ok) return { error: "Неверный позывной или пароль." };
 
-  const role = row.role as "side_a" | "side_b" | "admin";
+  const isAdmin = Boolean(row.is_admin);
+  const sideId = isAdmin ? null : (row.side_id as string | null);
+  if (!isAdmin && (!sideId || !isUuid(sideId))) {
+    return { error: "Учётная запись повреждена. Обратитесь к администратору." };
+  }
+
   const token = await signSessionToken({
     id: row.id as string,
     username: String(row.username),
-    role,
+    isAdmin,
+    sideId,
   });
   (await cookies()).set(SESSION_COOKIE, token, cookieOpts);
   redirect("/dashboard");
@@ -54,8 +61,7 @@ export async function registerAction(formData: FormData): Promise<AuthActionResu
 
   const username = String(formData.get("username") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const roleRaw = formData.get("role");
-  const role: "side_a" | "side_b" = roleRaw === "side_b" ? "side_b" : "side_a";
+  const sideIdRaw = String(formData.get("side_id") ?? "").trim();
 
   if (!username || username.length < 2) {
     return { error: "Позывной не короче 2 символов." };
@@ -63,13 +69,31 @@ export async function registerAction(formData: FormData): Promise<AuthActionResu
   if (password.length < 6) {
     return { error: "Пароль не короче 6 символов." };
   }
+  if (!sideIdRaw || !isUuid(sideIdRaw)) {
+    return { error: "Выберите сторону." };
+  }
+
+  const supabase = createServiceClient();
+  const { data: sideOk, error: sideErr } = await supabase
+    .from("game_sides")
+    .select("id")
+    .eq("id", sideIdRaw)
+    .maybeSingle();
+
+  if (sideErr || !sideOk) {
+    return { error: "Выбранная сторона не найдена." };
+  }
 
   const hash = await bcrypt.hash(password, 10);
-  const supabase = createServiceClient();
   const { data: inserted, error } = await supabase
     .from("game_users")
-    .insert({ username, password_hash: hash, role })
-    .select("id, username, role")
+    .insert({
+      username,
+      password_hash: hash,
+      is_admin: false,
+      side_id: sideIdRaw,
+    })
+    .select("id, username, is_admin, side_id")
     .single();
 
   if (error) {
@@ -82,7 +106,8 @@ export async function registerAction(formData: FormData): Promise<AuthActionResu
   const token = await signSessionToken({
     id: inserted.id as string,
     username: String(inserted.username),
-    role: inserted.role as "side_a" | "side_b",
+    isAdmin: false,
+    sideId: inserted.side_id as string,
   });
   (await cookies()).set(SESSION_COOKIE, token, cookieOpts);
   redirect("/dashboard");

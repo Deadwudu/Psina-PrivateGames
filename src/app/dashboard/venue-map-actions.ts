@@ -50,7 +50,7 @@ export async function adminAddVenueMarker(
   topPct: number
 ): Promise<{ ok?: true; error?: string }> {
   const session = await getSession();
-  if (!session || session.role !== "admin") return { error: "Только администратор" };
+  if (!session?.isAdmin) return { error: "Только администратор" };
 
   const x = Math.min(100, Math.max(0, leftPct));
   const y = Math.min(100, Math.max(0, topPct));
@@ -73,7 +73,7 @@ export async function adminUpdateVenueMarkerPosition(
   topPct: number
 ): Promise<{ ok?: true; error?: string }> {
   const session = await getSession();
-  if (!session || session.role !== "admin") return { error: "Только администратор" };
+  if (!session?.isAdmin) return { error: "Только администратор" };
 
   const x = Math.min(100, Math.max(0, leftPct));
   const y = Math.min(100, Math.max(0, topPct));
@@ -91,7 +91,7 @@ export async function adminUpdateVenueMarkerPosition(
 
 export async function adminDeleteVenueMarker(id: string): Promise<{ ok?: true; error?: string }> {
   const session = await getSession();
-  if (!session || session.role !== "admin") return { error: "Только администратор" };
+  if (!session?.isAdmin) return { error: "Только администратор" };
 
   const supabase = createServiceClient();
   const { error } = await supabase.from("venue_map_markers").delete().eq("id", id);
@@ -103,7 +103,7 @@ export async function adminDeleteVenueMarker(id: string): Promise<{ ok?: true; e
 
 export async function adminCycleVenueMarkerColor(id: string): Promise<{ ok?: true; error?: string }> {
   const session = await getSession();
-  if (!session || session.role !== "admin") return { error: "Только администратор" };
+  if (!session?.isAdmin) return { error: "Только администратор" };
 
   const supabase = createServiceClient();
   const { data: row, error: fetchErr } = await supabase

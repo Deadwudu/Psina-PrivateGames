@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { adminAssignTaskToSide, type AdminTaskResult } from "@/app/admin/actions";
+import type { GameSide } from "@/lib/game-sides";
 
 async function sideAssignAction(
   _prev: AdminTaskResult | null,
@@ -11,11 +12,10 @@ async function sideAssignAction(
 }
 
 type Props = {
-  sideALabel: string;
-  sideBLabel: string;
+  sides: GameSide[];
 };
 
-export function AdminAssignSideTaskForm({ sideALabel, sideBLabel }: Props) {
+export function AdminAssignSideTaskForm({ sides }: Props) {
   const [state, formAction, pending] = useActionState(sideAssignAction, null);
 
   return (
@@ -27,16 +27,24 @@ export function AdminAssignSideTaskForm({ sideALabel, sideBLabel }: Props) {
       </p>
       <div>
         <span className="mb-2 block text-sm text-[var(--muted)]">Сторона</span>
-        <div className="flex flex-wrap gap-4">
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
-            <input type="radio" name="target_side" value="side_a" required className="accent-[var(--accent)]" />
-            {sideALabel}
-          </label>
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
-            <input type="radio" name="target_side" value="side_b" className="accent-[var(--accent)]" />
-            {sideBLabel}
-          </label>
-        </div>
+        {sides.length === 0 ? (
+          <p className="text-sm text-amber-200/90">Сначала добавьте стороны в блоке выше.</p>
+        ) : (
+          <div className="flex flex-wrap gap-4">
+            {sides.map((s) => (
+              <label key={s.id} className="flex cursor-pointer items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="target_side_id"
+                  value={s.id}
+                  required
+                  className="accent-[var(--accent)]"
+                />
+                {s.display_name}
+              </label>
+            ))}
+          </div>
+        )}
       </div>
       <div>
         <label className="mb-1 block text-sm text-[var(--muted)]">Заголовок</label>
@@ -52,7 +60,7 @@ export function AdminAssignSideTaskForm({ sideALabel, sideBLabel }: Props) {
         />
       </div>
       {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
-      <button type="submit" className="btn-primary" disabled={pending}>
+      <button type="submit" className="btn-primary" disabled={pending || sides.length === 0}>
         {pending ? "Выдача…" : "Выдать всей стороне"}
       </button>
     </form>

@@ -4,14 +4,17 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { getSession } from "@/lib/auth/session";
 import { createServiceClient } from "@/lib/supabase/service";
+import { isUuid } from "@/lib/uuid";
 
 export type AdminTaskResult = { error: string };
 
+function denyAdmin(): AdminTaskResult {
+  return { error: "Нет прав администратора" };
+}
+
 export async function adminAssignTask(formData: FormData): Promise<AdminTaskResult | void> {
   const session = await getSession();
-  if (!session || session.role !== "admin") {
-    return { error: "Нет прав администратора" };
-  }
+  if (!session?.isAdmin) return denyAdmin();
 
   const userId = (formData.get("user_id") as string)?.trim();
   const title = (formData.get("title") as string)?.trim();
@@ -35,33 +38,39 @@ export async function adminAssignTask(formData: FormData): Promise<AdminTaskResu
   revalidatePath("/dashboard/rapport");
 }
 
-/** Задача всей стороне: у каждого игрока с этой ролью появляется своя строка user_tasks. */
+/** Задача всей стороне: у каждого игрока с этой стороной появляется своя строка user_tasks. */
 export async function adminAssignTaskToSide(formData: FormData): Promise<AdminTaskResult | void> {
   const session = await getSession();
-  if (!session || session.role !== "admin") {
-    return { error: "Нет прав администратора" };
-  }
+  if (!session?.isAdmin) return denyAdmin();
 
-  const targetSide = (formData.get("target_side") as string)?.trim();
+  const targetSideId = (formData.get("target_side_id") as string)?.trim();
   const title = (formData.get("side_title") as string)?.trim();
   const description = (formData.get("side_description") as string)?.trim();
 
-  if (targetSide !== "side_a" && targetSide !== "side_b") {
-    return { error: "Выберите сторону А или Б" };
+  if (!targetSideId || !isUuid(targetSideId)) {
+    return { error: "Выберите сторону" };
   }
   if (!title) return { error: "Укажите заголовок" };
   if (!description) return { error: "Укажите текст задания" };
 
   const supabase = createServiceClient();
+  const { data: sideRow, error: sideErr } = await supabase
+    .from("game_sides")
+    .select("id")
+    .eq("id", targetSideId)
+    .maybeSingle();
+  if (sideErr || !sideRow) return { error: "Сторона не найдена" };
+
   const { data: players, error: listErr } = await supabase
     .from("game_users")
     .select("id")
-    .eq("role", targetSide);
+    .eq("is_admin", false)
+    .eq("side_id", targetSideId);
 
   if (listErr) return { error: listErr.message };
   const ids = (players as { id: string }[] | null)?.map((p) => p.id) ?? [];
   if (ids.length === 0) {
-    return { error: "На выбранной стороне нет участников (только эта роль учитывается)." };
+    return { error: "На выбранной стороне нет участников." };
   }
 
   const batchId = randomUUID();
@@ -81,43 +90,122 @@ export async function adminAssignTaskToSide(formData: FormData): Promise<AdminTa
   revalidatePath("/dashboard/rapport");
 }
 
-export type AdminSideNamesResult = { error: string } | { ok: true };
+const SIDE_NAME_MAX = 120;
 
-const SIDE_NAME_MAX = 80;
+export type AdminSideMutationResult = { error: string } | { ok: true };
 
-/** Названия сторон в интерфейсе (роли side_a / side_b в БД не меняются). */
-export async function adminSetSideDisplayNames(formData: FormData): Promise<AdminSideNamesResult> {
+export async function adminCreateSide(formData: FormData): Promise<AdminSideMutationResult> {
   const session = await getSession();
-  if (!session || session.role !== "admin") {
-    return { error: "Нет прав администратора" };
-  }
+  if (!session?.isAdmin) return { error: denyAdmin().error };
 
-  const sideA = (formData.get("side_a_name") as string)?.trim() ?? "";
-  const sideB = (formData.get("side_b_name") as string)?.trim() ?? "";
-
-  if (!sideA || !sideB) {
-    return { error: "Укажите оба названия" };
-  }
-  if (sideA.length > SIDE_NAME_MAX || sideB.length > SIDE_NAME_MAX) {
-    return { error: `Не длиннее ${SIDE_NAME_MAX} символов каждое` };
+  const name = (formData.get("display_name") as string)?.trim() ?? "";
+  if (!name || name.length > SIDE_NAME_MAX) {
+    return { error: `Название от 1 до ${SIDE_NAME_MAX} символов` };
   }
 
   const supabase = createServiceClient();
-  const { error } = await supabase.from("app_settings").upsert(
-    [
-      { key: "side_a_display_name", value: sideA },
-      { key: "side_b_display_name", value: sideB },
-    ],
-    { onConflict: "key" }
-  );
+  const { data: maxRow } = await supabase
+    .from("game_sides")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextOrder = typeof maxRow?.sort_order === "number" ? maxRow.sort_order + 1 : 0;
 
+  const { error } = await supabase.from("game_sides").insert({
+    display_name: name,
+    sort_order: nextOrder,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  revalidatePath("/register");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function adminUpdateSide(formData: FormData): Promise<AdminSideMutationResult> {
+  const session = await getSession();
+  if (!session?.isAdmin) return { error: denyAdmin().error };
+
+  const sideId = (formData.get("side_id") as string)?.trim();
+  const name = (formData.get("display_name") as string)?.trim() ?? "";
+  if (!sideId || !isUuid(sideId)) return { error: "Некорректная сторона" };
+  if (!name || name.length > SIDE_NAME_MAX) {
+    return { error: `Название от 1 до ${SIDE_NAME_MAX} символов` };
+  }
+
+  const supabase = createServiceClient();
+  const { error } = await supabase.from("game_sides").update({ display_name: name }).eq("id", sideId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  revalidatePath("/register");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function adminDeleteSide(formData: FormData): Promise<AdminSideMutationResult> {
+  const session = await getSession();
+  if (!session?.isAdmin) return { error: denyAdmin().error };
+
+  const sideId = (formData.get("side_id") as string)?.trim();
+  if (!sideId || !isUuid(sideId)) return { error: "Некорректная сторона" };
+
+  const supabase = createServiceClient();
+  const { count, error: cntErr } = await supabase
+    .from("game_users")
+    .select("id", { count: "exact", head: true })
+    .eq("side_id", sideId);
+  if (cntErr) return { error: cntErr.message };
+  if (count && count > 0) {
+    return { error: "На стороне есть игроки — сначала переведите их на другую сторону" };
+  }
+
+  const { error } = await supabase.from("game_sides").delete().eq("id", sideId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  revalidatePath("/register");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export type AdminSetUserSideResult = { error: string } | { ok: true };
+
+/** Смена стороны игрока; cookie игрока не обновляется — ему нужен повторный вход. */
+export async function adminSetUserSide(formData: FormData): Promise<AdminSetUserSideResult> {
+  const session = await getSession();
+  if (!session?.isAdmin) return { error: denyAdmin().error };
+
+  const userId = (formData.get("user_id") as string)?.trim();
+  const sideId = (formData.get("side_id") as string)?.trim();
+  if (!userId || !isUuid(userId)) return { error: "Некорректный пользователь" };
+  if (!sideId || !isUuid(sideId)) return { error: "Выберите сторону" };
+
+  const supabase = createServiceClient();
+  const { data: userRow, error: fetchErr } = await supabase
+    .from("game_users")
+    .select("is_admin")
+    .eq("id", userId)
+    .maybeSingle();
+  if (fetchErr) return { error: fetchErr.message };
+  if (!userRow) return { error: "Пользователь не найден" };
+  if (userRow.is_admin) return { error: "Нельзя менять сторону администратора" };
+
+  const { data: sideOk, error: sideErr } = await supabase
+    .from("game_sides")
+    .select("id")
+    .eq("id", sideId)
+    .maybeSingle();
+  if (sideErr || !sideOk) return { error: "Сторона не найдена" };
+
+  const { error } = await supabase.from("game_users").update({ side_id: sideId }).eq("id", userId);
   if (error) return { error: error.message };
 
   revalidatePath("/admin");
   revalidatePath("/dashboard");
-  revalidatePath("/register");
   revalidatePath("/dashboard/rapport");
-
   return { ok: true };
 }
 
@@ -135,12 +223,10 @@ async function deleteAllRows(
   return null;
 }
 
-/** Удаление игровых данных после мероприятия (учётные записи и названия сторон не меняются). */
+/** Удаление игровых данных после мероприятия (учётные записи и стороны не меняются). */
 export async function adminPurgeEventData(formData: FormData): Promise<AdminPurgeResult> {
   const session = await getSession();
-  if (!session || session.role !== "admin") {
-    return { error: "Нет прав администратора" };
-  }
+  if (!session?.isAdmin) return { error: denyAdmin().error };
 
   const typed = ((formData.get("purge_confirm") as string) ?? "").trim();
   if (typed !== PURGE_CONFIRM_WORD) {
@@ -199,9 +285,7 @@ export type AdminReportResult = { error: string };
 
 export async function adminUpdateTaskReport(formData: FormData): Promise<AdminReportResult | void> {
   const session = await getSession();
-  if (!session || session.role !== "admin") {
-    return { error: "Нет прав администратора" };
-  }
+  if (!session?.isAdmin) return denyAdmin();
 
   const reportId = (formData.get("report_id") as string)?.trim();
   if (!reportId) return { error: "Не указан рапорт" };

@@ -5,7 +5,9 @@ import { verifySessionToken } from "./jwt";
 export type AppSession = {
   userId: string;
   username: string;
-  role: "side_a" | "side_b" | "admin";
+  isAdmin: boolean;
+  /** UUID стороны; для администратора null */
+  sideId: string | null;
 };
 
 export async function getSession(): Promise<AppSession | null> {
@@ -13,6 +15,16 @@ export async function getSession(): Promise<AppSession | null> {
   if (!token) return null;
   const payload = await verifySessionToken(token);
   const sub = payload?.sub;
-  if (!sub || !payload.username || !payload.role) return null;
-  return { userId: sub, username: payload.username, role: payload.role };
+  if (!sub || !payload?.username || typeof payload.isAdmin !== "boolean") return null;
+
+  if (payload.isAdmin) {
+    return { userId: sub, username: payload.username, isAdmin: true, sideId: null };
+  }
+  if (!payload.sideId) return null;
+  return {
+    userId: sub,
+    username: payload.username,
+    isAdmin: false,
+    sideId: payload.sideId,
+  };
 }

@@ -1,8 +1,12 @@
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
+import { UUID_RE } from "@/lib/uuid";
 
 export type SessionPayload = JWTPayload & {
   username: string;
-  role: "side_a" | "side_b" | "admin";
+  /** Администратор мероприятия */
+  isAdmin: boolean;
+  /** UUID стороны из game_sides; у администратора всегда null */
+  sideId: string | null;
 };
 
 function getSecretBytes(): Uint8Array | null {
@@ -14,7 +18,8 @@ function getSecretBytes(): Uint8Array | null {
 export async function signSessionToken(user: {
   id: string;
   username: string;
-  role: "side_a" | "side_b" | "admin";
+  isAdmin: boolean;
+  sideId: string | null;
 }): Promise<string> {
   const secret = getSecretBytes();
   if (!secret) {
@@ -22,7 +27,11 @@ export async function signSessionToken(user: {
       "SESSION_SECRET слишком короткий или не задан. Укажите случайную строку ≥16 символов в .env.local и на Vercel."
     );
   }
-  return new SignJWT({ username: user.username, role: user.role })
+  return new SignJWT({
+    username: user.username,
+    isAdmin: user.isAdmin,
+    sideId: user.sideId,
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(user.id)
     .setIssuedAt()
@@ -36,11 +45,26 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
   try {
     const { payload } = await jwtVerify(token, secret, { algorithms: ["HS256"] });
     const username = payload.username;
-    const role = payload.role;
-    if (typeof username !== "string" || (role !== "side_a" && role !== "side_b" && role !== "admin")) {
+    if (typeof username !== "string") return null;
+
+    if (typeof payload.isAdmin === "boolean") {
+      const sideRaw = payload.sideId;
+      const sideId =
+        sideRaw === null || sideRaw === undefined
+          ? null
+          : typeof sideRaw === "string" && UUID_RE.test(sideRaw)
+            ? sideRaw
+            : null;
+      if (payload.isAdmin) {
+        return { ...payload, username, isAdmin: true, sideId: null } as SessionPayload;
+      }
+      if (sideId) {
+        return { ...payload, username, isAdmin: false, sideId } as SessionPayload;
+      }
       return null;
     }
-    return { ...payload, username, role } as SessionPayload;
+
+    return null;
   } catch {
     return null;
   }

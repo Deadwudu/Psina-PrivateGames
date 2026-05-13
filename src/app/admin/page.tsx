@@ -1,16 +1,14 @@
 import { createServiceClient } from "@/lib/supabase/service";
-import { getSideDisplayNames } from "@/lib/side-display-names";
+import { listGameSides } from "@/lib/game-sides";
 import { AdminAssignTaskForm } from "@/components/AdminAssignTaskForm";
 import { AdminAssignSideTaskForm } from "@/components/AdminAssignSideTaskForm";
-import { AdminSideNamesForm } from "@/components/AdminSideNamesForm";
+import { AdminGameSidesPanel } from "@/components/AdminGameSidesPanel";
+import { AdminUserSideForms } from "@/components/AdminUserSideForms";
+import type { AdminUserRow } from "@/components/AdminUserSideForms";
 import { AdminPurgeEventForm } from "@/components/AdminPurgeEventForm";
 import { AdminReportRowForm } from "@/components/AdminReportRowForm";
 
-type GameUserRow = {
-  id: string;
-  username: string;
-  role: string;
-};
+type GameUserRow = AdminUserRow;
 
 type TaskRow = {
   id: string;
@@ -31,7 +29,7 @@ type ReportAdminRow = {
   content: string | null;
   task_reference: string | null;
   created_at: string;
-  game_users: { username: string; role?: string } | { username: string; role?: string }[] | null;
+  game_users: { username: string } | { username: string }[] | null;
   user_tasks: { title: string } | { title: string }[] | null;
 };
 
@@ -48,7 +46,8 @@ function displayReportBody(r: ReportAdminRow): string {
 
 export default async function AdminPage() {
   const supabase = createServiceClient();
-  const sideNames = await getSideDisplayNames();
+  const sides = await listGameSides();
+  const sideLabel = new Map(sides.map((s) => [s.id, s.display_name]));
 
   const [
     { data: reports },
@@ -59,12 +58,12 @@ export default async function AdminPage() {
     supabase
       .from("task_reports")
       .select(
-        "id, user_id, user_task_id, task_completed, rapport_comment, content, task_reference, created_at, game_users(username, role), user_tasks(title)"
+        "id, user_id, user_task_id, task_completed, rapport_comment, content, task_reference, created_at, game_users(username), user_tasks(title)"
       )
       .order("created_at", { ascending: false })
       .limit(200),
     supabase.from("hack_results").select("*").order("created_at", { ascending: false }).limit(200),
-    supabase.from("game_users").select("id, username, role").order("username"),
+    supabase.from("game_users").select("id, username, is_admin, side_id").order("username"),
     supabase
       .from("user_tasks")
       .select("id, title, description, status, created_at, user_id, game_users(username)")
@@ -76,17 +75,18 @@ export default async function AdminPage() {
     (users as GameUserRow[] | null)?.map((u) => [u.id, u]) ?? []
   );
 
-  const roleLabel: Record<string, string> = {
-    side_a: sideNames.sideA,
-    side_b: sideNames.sideB,
-    admin: "Админ",
-  };
+  function userSideColumn(u: GameUserRow | undefined): string {
+    if (!u) return "—";
+    if (u.is_admin) return "Админ";
+    if (u.side_id) return sideLabel.get(u.side_id) ?? "—";
+    return "—";
+  }
 
   const userOptions =
     (users as GameUserRow[] | null)?.map((u) => ({
       id: u.id,
       username: String(u.username),
-      role: roleLabel[u.role] ?? u.role,
+      role: u.is_admin ? "Админ" : sideLabel.get(u.side_id ?? "") ?? "—",
     })) ?? [];
 
   const activityLabel: Record<string, string> = {
@@ -107,11 +107,13 @@ export default async function AdminPage() {
       <h1 className="mb-2 text-2xl font-semibold">Обзор мероприятия</h1>
       <p className="mb-8 text-[var(--muted)]">Рапорты, задачи участникам и результаты взломов.</p>
 
-      <AdminSideNamesForm initialSideA={sideNames.sideA} initialSideB={sideNames.sideB} />
+      <AdminGameSidesPanel initialSides={sides} />
+
+      <AdminUserSideForms users={(users as GameUserRow[] | null) ?? []} sides={sides} />
 
       <AdminAssignTaskForm users={userOptions} />
 
-      <AdminAssignSideTaskForm sideALabel={sideNames.sideA} sideBLabel={sideNames.sideB} />
+      <AdminAssignSideTaskForm sides={sides} />
 
       <section className="mb-12">
         <h2 className="mb-4 text-lg font-medium">Выданные задачи</h2>
@@ -189,7 +191,7 @@ export default async function AdminPage() {
                         {new Date(r.created_at).toLocaleString("ru-RU")}
                       </td>
                       <td className="p-3">{gu?.username ?? u?.username ?? r.user_id}</td>
-                      <td className="p-3">{u?.role ? (roleLabel[u.role] ?? u.role) : "—"}</td>
+                      <td className="p-3">{userSideColumn(u)}</td>
                       <td className="max-w-[180px] p-3 font-medium">{taskTitle}</td>
                       <td className="max-w-[min(360px,40vw)] p-3">
                         <AdminReportRowForm
@@ -243,7 +245,7 @@ export default async function AdminPage() {
                       {new Date(h.created_at).toLocaleString("ru-RU")}
                     </td>
                     <td className="p-3">{u?.username ?? h.user_id}</td>
-                    <td className="p-3">{u?.role ? (roleLabel[u.role] ?? u.role) : "—"}</td>
+                    <td className="p-3">{userSideColumn(u)}</td>
                     <td className="p-3">{activityLabel[h.activity_type as string] ?? h.activity_type}</td>
                     <td className="p-3">{h.success ? "успех" : "провал"}</td>
                     <td className="max-w-md p-3 whitespace-pre-wrap">

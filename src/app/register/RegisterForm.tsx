@@ -4,8 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { registerAction, type AuthActionResult } from "@/app/auth/actions";
 import { BrandMark } from "@/components/BrandMark";
-
-type Side = "side_a" | "side_b";
+import type { GameSide } from "@/lib/game-sides";
 
 async function registerFormAction(
   _prev: AuthActionResult | null,
@@ -15,14 +14,18 @@ async function registerFormAction(
 }
 
 type Props = {
-  sideALabel: string;
-  sideBLabel: string;
+  sides: GameSide[];
 };
 
-export function RegisterForm({ sideALabel, sideBLabel }: Props) {
+export function RegisterForm({ sides }: Props) {
+  const firstId = sides[0]?.id ?? "";
+  const [sideId, setSideId] = useState(firstId);
   const [state, formAction, pending] = useActionState(registerFormAction, null);
-  const [side, setSide] = useState<Side>("side_a");
   const [banner, setBanner] = useState<"config" | "url" | null>(null);
+
+  useEffect(() => {
+    if (firstId && !sideId) setSideId(firstId);
+  }, [firstId, sideId]);
 
   useEffect(() => {
     const m = new URLSearchParams(window.location.search).get("missing");
@@ -53,59 +56,61 @@ export function RegisterForm({ sideALabel, sideBLabel }: Props) {
             Не задан <code className="text-xs">NEXT_PUBLIC_SUPABASE_URL</code>.
           </div>
         )}
-        <form action={formAction} className="space-y-4">
-          <input type="hidden" name="role" value={side} />
-          <div>
-            <label className="mb-1 block text-sm text-[var(--muted)]">Позывной</label>
-            <input
-              className="input"
-              name="username"
-              type="text"
-              autoComplete="username"
-              placeholder="Уникальный логин"
-              required
-              minLength={2}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm text-[var(--muted)]">Сторона</label>
-            <div className="flex gap-3">
-              <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-2 has-[:checked]:border-[var(--accent)]">
-                <input
-                  type="radio"
-                  name="side_radio"
-                  checked={side === "side_a"}
-                  onChange={() => setSide("side_a")}
-                />
-                {sideALabel}
-              </label>
-              <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-2 has-[:checked]:border-[var(--accent)]">
-                <input
-                  type="radio"
-                  name="side_radio"
-                  checked={side === "side_b"}
-                  onChange={() => setSide("side_b")}
-                />
-                {sideBLabel}
-              </label>
+        {sides.length === 0 ? (
+          <p className="text-sm text-amber-200/90">
+            Пока нет ни одной стороны. Попросите администратора открыть панель администратора и добавить стороны.
+          </p>
+        ) : (
+          <form action={formAction} className="space-y-4">
+            <input type="hidden" name="side_id" value={sideId} />
+            <div>
+              <label className="mb-1 block text-sm text-[var(--muted)]">Позывной</label>
+              <input
+                className="input"
+                name="username"
+                type="text"
+                autoComplete="username"
+                placeholder="Уникальный логин"
+                required
+                minLength={2}
+              />
             </div>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm text-[var(--muted)]">Пароль</label>
-            <input
-              className="input"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={6}
-            />
-          </div>
-          {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
-          <button type="submit" className="btn-primary w-full" disabled={pending}>
-            {pending ? "Создание…" : "Зарегистрироваться"}
-          </button>
-        </form>
+            <div>
+              <label className="mb-1 block text-sm text-[var(--muted)]">Сторона</label>
+              <div className="flex flex-col gap-2">
+                {sides.map((s) => (
+                  <label
+                    key={s.id}
+                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-2 has-[:checked]:border-[var(--accent)]"
+                  >
+                    <input
+                      type="radio"
+                      name="side_radio"
+                      checked={sideId === s.id}
+                      onChange={() => setSideId(s.id)}
+                    />
+                    {s.display_name}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm text-[var(--muted)]">Пароль</label>
+              <input
+                className="input"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={6}
+              />
+            </div>
+            {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
+            <button type="submit" className="btn-primary w-full" disabled={pending || !sideId}>
+              {pending ? "Создание…" : "Зарегистрироваться"}
+            </button>
+          </form>
+        )}
         <p className="mt-4 text-center text-sm text-[var(--muted)]">
           Уже есть аккаунт?{" "}
           <Link href="/login" className="text-[var(--accent)] hover:underline">
